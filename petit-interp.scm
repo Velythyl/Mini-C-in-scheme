@@ -242,8 +242,6 @@
                     (<while_stat> inp2 cont))
                     ((DO-SYM)
                     (<do_stat> inp2 cont))
-                    ((SEMI)
-                    (<semi_stat> inp2 cont))
                     ((LBRA)
                     (<lbra_stat> inp2 cont))
                   (else
@@ -337,7 +335,7 @@
 ;; executes par le programme interprete.
 
 (define execute
-  (lambda ()
+  (lambda (ast)     ;; enlever si on veut voir l'ASA TODO
     (exec-stat '() ;; etat des variables globales
                ""  ;; sortie jusqu'a date
                ast ;; ASA du programme
@@ -381,8 +379,6 @@
                   (cadr ast)
                   (lambda (env output val)
                     (cont env output)))) ;; continuer en ignorant le resultat
-
-
 
       (else
        "internal error (unknown statement AST)\n"))))
