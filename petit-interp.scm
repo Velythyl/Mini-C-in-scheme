@@ -358,8 +358,8 @@
   (lambda (env output ast cont)
     (case (car ast)
 
-      ((PRINT)
-       (exec-expr env ;; evaluer l'expression du print
+        ((PRINT)
+        (exec-expr env ;; evaluer l'expression du print
                   output
                   (cadr ast)
                   (lambda (env output val)
@@ -368,12 +368,21 @@
                                          (number->string val)
                                          "\n")))))
 
-      ((EXPR)
-       (exec-expr env ;; evaluer l'expression
+        ((EXPR)
+        (exec-expr env ;; evaluer l'expression
                   output
                   (cadr ast)
                   (lambda (env output val)
                     (cont env output)))) ;; continuer en ignorant le resultat
+
+        ((SEQ)
+        (exec-expr env ;; evaluer l'expression
+                  output
+                  (cadr ast)
+                  (lambda (env output val)
+                    (cont env output)))) ;; continuer en ignorant le resultat
+
+
 
       (else
        "internal error (unknown statement AST)\n"))))
