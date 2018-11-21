@@ -66,23 +66,20 @@
                    ((char=? c #\=) ((combine ($ inp) 'ASSI cont)))
                    ((char=? c #\>) ((combine ($ inp) 'GT cont)))
                    ((char=? c #\<) ((combine ($ inp) 'LT cont)))
-                   ((char=? c #\!) ((let c (@ ($ inp))
-                                       (if (char=? c #\=) (cont ($ inp) 'NEQ) syntax-error)
-                                   )))
+                   ((char=? c #\!) ((if (char=? (@ ($ inp)) #\=) (cont ($ ($ inp)) 'NEQ) syntax-error)))
+
                    (else
                     (syntax-error))))))))
 
 (define combine
     (lambda (sym inp cont)
-        (let c (@ inp)
-            (if (char=? c #\=)(
-                (cond
-                    ((equal? sym 'ASSI)((cont ($ inp) 'EQ)))
-                    ((equal? sym 'GT)((cont ($ inp) 'GE)))
-                    ((equal? sym 'LT)((cont ($ inp) 'LE)))
-                )
-            ) (cont inp sym))
-        )
+        (if (char=? (@ inp) #\=)(
+            (cond
+                ((equal? sym 'ASSI)((cont ($ inp) 'EQ)))
+                ((equal? sym 'GT)((cont ($ inp) 'GE)))
+                ((equal? sym 'LT)((cont ($ inp) 'LE)))
+            )
+        ) (cont inp sym))
     )
 )
 
@@ -254,7 +251,7 @@
 
 (define <print_stat>
   (lambda (inp cont)
-    (<paren_exp> inp ;; analyser un <paren_expr>
+    (<paren_expr> inp ;; analyser un <paren_expr>
                   (lambda (inp expr)
                     (expect 'SEMI ;; verifier qu'il y a ";" apres
                             inp
@@ -340,7 +337,7 @@
 ;; executes par le programme interprete.
 
 (define execute
-  (lambda (ast)
+  (lambda ()
     (exec-stat '() ;; etat des variables globales
                ""  ;; sortie jusqu'a date
                ast ;; ASA du programme
