@@ -77,9 +77,9 @@
         (let c (@ inp)
             (if (char=? c #\=)(
                 (cond
-                    ((= sym 'ASSI)((cont ($ inp) 'EQ)))
-                    ((= sym 'GT)((cont ($ inp) 'GE)))
-                    ((= sym 'LT)((cont ($ inp) 'LE)))
+                    ((equal? sym 'ASSI)((cont ($ inp) 'EQ)))
+                    ((equal? sym 'GT)((cont ($ inp) 'GE)))
+                    ((equal? sym 'LT)((cont ($ inp) 'LE)))
                 )
             ) (cont inp sym))
         )
@@ -249,20 +249,28 @@
                     (<semi_stat> inp2 cont))
                     ((LBRA)
                     (<lbra_stat> inp2 cont))
-                    ((RBRA)
-                    (<rbra_stat> inp2 cont))
                   (else
                    (<expr_stat> inp cont)))))))
 
 (define <print_stat>
   (lambda (inp cont)
-    (<paren_expr> inp ;; analyser un <paren_expr>
+    (<paren_exp> inp ;; analyser un <paren_expr>
                   (lambda (inp expr)
                     (expect 'SEMI ;; verifier qu'il y a ";" apres
                             inp
                             (lambda (inp)
                               (cont inp
                                     (list 'PRINT expr))))))))
+
+(define <lbra_stat>
+  (lambda (inp cont)
+    (<stat> inp ;; analyser un stat qui est entre les brackets
+                  (lambda (inp expr)
+                    (expect 'RBRA ;; verifier qu'il y a "}" apres
+                            inp
+                            (lambda (inp)
+                              (cont inp
+                                    (list 'SEQ expr))))))))
 
 (define <paren_expr>
   (lambda (inp cont)
