@@ -1,4 +1,4 @@
-#! /usr/bin/env gsi -:dar
+#! /usr/local/Gambit/bin/gsi -:dar
 
 ;;; Fichier : petit-interp.scm
 
@@ -51,9 +51,40 @@
                    ((lettre? c)    (symbol-id inp cont))
                    ((char=? c #\() (cont ($ inp) 'LPAR))
                    ((char=? c #\)) (cont ($ inp) 'RPAR))
+
                    ((char=? c #\;) (cont ($ inp) 'SEMI))
+
+                   ((char=? c #\{) (cont ($ inp) 'LBRA))
+                   ((char=? c #\}) (cont ($ inp) 'RBRA))
+
+                   ((char=? c #\+) (cont ($ inp) 'PLUS))
+                   ((char=? c #\-) (cont ($ inp) 'MINUS))
+                   ((char=? c #\*) (cont ($ inp) 'MULT))
+                   ((char=? c #\/) (cont ($ inp) 'DIVI))
+                   ((char=? c #\%) (cont ($ inp) 'MODU))
+
+                   ((char=? c #\=) ((combine ($ inp) 'ASSI cont)))
+                   ((char=? c #\>) ((combine ($ inp) 'GT cont)))
+                   ((char=? c #\<) ((combine ($ inp) 'LT cont)))
+                   ((char=? c #\!) ((let c (@ ($ inp))
+                                       (if (char=? c #\=) (cont ($ inp) 'NEQ) syntax-error)
+                                   )))
                    (else
                     (syntax-error))))))))
+
+(define combine
+    (lambda (sym inp cont)
+        (let c (@ inp)
+            (if (char=? c #\=)(
+                (cond
+                    ((= sym 'ASSI)((cont ($ inp) 'EQ)))
+                    ((= sym 'GT)((cont ($ inp) 'GE)))
+                    ((= sym 'LT)((cont ($ inp) 'LE)))
+                )
+            ) (cont inp sym))
+        )
+    )
+)
 
 ;; La fonction @ prend une liste de caractere possiblement vide et
 ;; retourne le premier caractere, ou le caractere #\nul si la liste
@@ -336,7 +367,7 @@
        (cont env
              output
              (cadr ast))) ;; retourner la valeur de la constante
-                    
+
       (else
        "internal error (unknown expression AST)\n"))))
 
@@ -347,5 +378,5 @@
 (define main
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
-    
+
 ;;;----------------------------------------------------------------------------
