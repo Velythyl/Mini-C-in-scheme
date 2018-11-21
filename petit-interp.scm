@@ -374,7 +374,7 @@
                     (cont env output)))) ;; continuer en ignorant le resultat
 
         ((SEQ)
-        (exec-expr env ;; evaluer l'expression
+        (exec-stat env ;; evaluer l'expression
                   output
                   (cadr ast)
                   (lambda (env output val)
