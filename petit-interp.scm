@@ -235,8 +235,22 @@
     (next-sym inp
               (lambda (inp2 sym)
                 (case sym ;; determiner quel genre de <stat>
-                  ((PRINT-SYM)
-                   (<print_stat> inp2 cont))
+                    ((PRINT-SYM)
+                    (<print_stat> inp2 cont))
+                    ((IF-SYM)
+                    (<if_stat> inp2 cont))
+                    ((ELSE-SYM)
+                    (<else_stat> inp2 cont))
+                    ((WHILE-SYM)
+                    (<while_stat> inp2 cont))
+                    ((DO-SYM)
+                    (<do_stat> inp2 cont))
+                    ((SEMI)
+                    (<semi_stat> inp2 cont))
+                    ((LBRA)
+                    (<lbra_stat> inp2 cont))
+                    ((RBRA)
+                    (<rbra_stat> inp2 cont))
                   (else
                    (<expr_stat> inp cont)))))))
 
