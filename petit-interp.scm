@@ -413,4 +413,5 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
+(trace main parse-and-execute parse execute expect <stat> exec-stat exec-expr)
 ;;;----------------------------------------------------------------------------
