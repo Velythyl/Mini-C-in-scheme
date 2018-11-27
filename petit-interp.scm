@@ -259,13 +259,18 @@
 
 (define <lbra_stat>
   (lambda (inp cont)
-    (<stat> inp ;; analyser un stat qui est entre les brackets
-                  (lambda (inp expr)
-                    (expect 'RBRA ;; verifier qu'il y a "}" apres
+    (<stat> inp  ;; analyser un stat qui est entre les brackets
+                  (lambda (inp stat)
+                    (expect 'RBRA ;; verifier qu'il y a "}" apres   # TODO ca marche pas
                             inp
                             (lambda (inp)
                               (cont inp
-                                    (list 'SEQ expr))))))))
+                                    (list 'SEQ stat))))))))
+
+(define <seq>
+    (lambda (inp cont)
+        
+    ))
 
 (define <paren_expr>
   (lambda (inp cont)
@@ -336,11 +341,12 @@
 
 (define execute
   (lambda (ast)     ;; enlever si on veut voir l'ASA TODO
+      (begin(pp ast)   ;; TODO TEMP
     (exec-stat '() ;; etat des variables globales
                ""  ;; sortie jusqu'a date
                ast ;; ASA du programme
                (lambda (env output)
-                 output)))) ;; retourner l'output pour qu'il soit affiche
+                 output))))) ;; retourner l'output pour qu'il soit affiche
 
 ;; La fonction exec-stat fait l'interpretation d'un enonce du
 ;; programme.  Elle prend quatre parametres : une liste d'association
@@ -377,11 +383,18 @@
         (exec-stat env ;; evaluer l'expression
                   output
                   (cadr ast)
-                  (lambda (env output val)
+                  (lambda (env output)
                     (cont env output)))) ;; continuer en ignorant le resultat
 
       (else
        "internal error (unknown statement AST)\n"))))
+
+(define exec-SEQ
+    (lambda (env output ast cont)
+        ((not (null? (car ast)))
+            ((exec-stat env output (cadr ast) cont)
+            exec-SEQ env output (cdr car) cont))
+    ))
 
 ;; La fonction exec-expr fait l'interpretation d'une expression du
 ;; programme.  Elle prend quatre parametres : une liste d'association
@@ -413,4 +426,5 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
+(trace main parse-and-execute parse execute expect <stat> exec-stat exec-expr exec-SEQ)
 ;;;----------------------------------------------------------------------------
