@@ -259,13 +259,13 @@
 
 (define <lbra_stat>
   (lambda (inp cont)
-    (<stat> inp ;; analyser un stat qui est entre les brackets
-                  (lambda (inp expr)
+    (<stat> inp  ;; analyser un stat qui est entre les brackets
+                  (lambda (inp stat)
                     (expect 'RBRA ;; verifier qu'il y a "}" apres
                             inp
                             (lambda (inp)
                               (cont inp
-                                    (list 'SEQ expr))))))))
+                                    (list 'SEQ stat))))))))
 
 (define <paren_expr>
   (lambda (inp cont)
@@ -336,11 +336,12 @@
 
 (define execute
   (lambda (ast)     ;; enlever si on veut voir l'ASA TODO
+      (begin(pp ast)   ;; TODO TEMP
     (exec-stat '() ;; etat des variables globales
                ""  ;; sortie jusqu'a date
                ast ;; ASA du programme
                (lambda (env output)
-                 output)))) ;; retourner l'output pour qu'il soit affiche
+                 output))))) ;; retourner l'output pour qu'il soit affiche
 
 ;; La fonction exec-stat fait l'interpretation d'un enonce du
 ;; programme.  Elle prend quatre parametres : une liste d'association
