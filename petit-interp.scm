@@ -243,7 +243,7 @@
                     ((DO-SYM)
                     (<do_stat> inp2 cont))
                     ((LBRA)
-                    (<lbra_stat> inp2 cont))
+                    (<seq> inp2 cont (list 'SEQ)))
                   (else
                    (<expr_stat> inp cont)))))))
 
@@ -257,15 +257,17 @@
                               (cont inp
                                     (list 'PRINT expr))))))))
 
-(define <lbra_stat>
-  (lambda (inp cont)
-    (<stat> inp  ;; analyser un stat qui est entre les brackets
-                  (lambda (inp stat)
-                    (expect 'RBRA ;; verifier qu'il y a "}" apres
-                            inp
-                            (lambda (inp)
-                              (cont inp
-                                    (list 'SEQ stat))))))))
+(define <seq>
+  (lambda (inp cont statlist)
+  (if (char=? (@ inp) #\})
+      (expect 'RBRA
+          inp
+          (lambda (inp)
+          (cont inp statlist)))
+    (<stat> inp
+        (lambda (inp stat)
+                (<seq> inp cont (append statlist stat))
+)))))
 
 (define <paren_expr>
   (lambda (inp cont)
@@ -378,11 +380,18 @@
         (exec-stat env ;; evaluer l'expression
                   output
                   (cadr ast)
-                  (lambda (env output val)
+                  (lambda (env output)
                     (cont env output)))) ;; continuer en ignorant le resultat
 
       (else
        "internal error (unknown statement AST)\n"))))
+
+(define exec-SEQ
+    (lambda (env output ast cont)
+        ((not (null? (car ast)))
+            ((exec-stat env output (cadr ast) cont)
+            exec-SEQ env output (cdr car) cont))
+    ))
 
 ;; La fonction exec-expr fait l'interpretation d'une expression du
 ;; programme.  Elle prend quatre parametres : une liste d'association
@@ -414,5 +423,5 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace main parse-and-execute parse execute expect <stat> exec-stat exec-expr)
+(trace main parse-and-execute parse execute expect <stat> exec-stat exec-expr exec-SEQ <seq>)
 ;;;----------------------------------------------------------------------------
