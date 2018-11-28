@@ -380,19 +380,33 @@
         (exec-SEQ env ;; evaluer l'expression
                   output
                   (cdr ast)
-                  (lambda (env output)
+                  (lambda (env output val)
                     (cont env output)))) ;; continuer en ignorant le resultat
 
       (else
        "internal error (unknown statement AST)\n"))))
 
 (define exec-SEQ
-    (lambda (env output ast cont)
-        (if (not (null? (car ast)))
-            ((exec-stat env output (car ast) cont)
-            exec-SEQ env output (cdr ast) cont)
-        )
-    ))
+    (lambda (env outputstatic ast cont)
+        (if (pair? ast)
+            (exec-stat env outputstatic (car ast)
+                (lambda (env ouput cont)
+                    (exec-SEQ env (append output outputstatic ) (cdr ast) cont))
+            )
+)))
+
+
+(define <seq>
+  (lambda (inp cont statlist)
+  (if (char=? (@ inp) #\})  ;; TODO remplacer par next sym ?
+      (expect 'RBRA
+          inp
+          (lambda (inp)
+          (cont inp statlist)))
+    (<stat> inp
+        (lambda (inp stat)
+                (<seq> inp cont (append statlist (list stat)))
+)))))
 
 ;; La fonction exec-expr fait l'interpretation d'une expression du
 ;; programme.  Elle prend quatre parametres : une liste d'association
