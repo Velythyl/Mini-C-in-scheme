@@ -259,7 +259,7 @@
 
 (define <seq>
   (lambda (inp cont statlist)
-  (if (char=? (@ inp) #\})
+  (if (char=? (@ inp) #\})  ;; TODO remplacer par next sym ?
       (expect 'RBRA
           inp
           (lambda (inp)
