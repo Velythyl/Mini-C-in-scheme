@@ -266,7 +266,7 @@
           (cont inp statlist)))
     (<stat> inp
         (lambda (inp stat)
-                (<seq> inp cont (append statlist stat))
+                (<seq> inp cont (append statlist (list stat)))
 )))))
 
 (define <paren_expr>
@@ -377,9 +377,9 @@
                     (cont env output)))) ;; continuer en ignorant le resultat
 
         ((SEQ)
-        (exec-stat env ;; evaluer l'expression
+        (exec-SEQ env ;; evaluer l'expression
                   output
-                  (cadr ast)
+                  (cdr ast)
                   (lambda (env output)
                     (cont env output)))) ;; continuer en ignorant le resultat
 
@@ -388,9 +388,10 @@
 
 (define exec-SEQ
     (lambda (env output ast cont)
-        ((not (null? (car ast)))
-            ((exec-stat env output (cadr ast) cont)
-            exec-SEQ env output (cdr car) cont))
+        (if (not (null? (car ast)))
+            ((exec-stat env output (car ast) cont)
+            exec-SEQ env output (cdr ast) cont)
+            )
     ))
 
 ;; La fonction exec-expr fait l'interpretation d'une expression du
