@@ -63,9 +63,9 @@
                    ((char=? c #\/) (cont ($ inp) 'DIVI))
                    ((char=? c #\%) (cont ($ inp) 'MODU))
 
-                   ((char=? c #\=) ((combine ($ inp) 'ASSI cont)))
-                   ((char=? c #\>) ((combine ($ inp) 'GT cont)))
-                   ((char=? c #\<) ((combine ($ inp) 'LT cont)))
+                   ((char=? c #\=) ((combine 'ASSI ($ inp) cont)))
+                   ((char=? c #\>) ((combine 'GT ($ inp) cont)))
+                   ((char=? c #\<) ((combine 'LT ($ inp) cont)))
                    ((char=? c #\!) ((if (char=? (@ ($ inp)) #\=) (cont ($ ($ inp)) 'NEQ) syntax-error)))
 
                    (else
@@ -306,24 +306,32 @@
                                                 (list 'ASSIGN
                                                       sym1
                                                       expr))))
-                                (<test> inp cont '()))))))))
+                                (<test> inp cont))))))))
+
+(define splittest
+    (lambda (inp left)
+        (cond ((or
+                (char=? (@ inp) #\<)
+                (char=? (@ inp) #\>)
+                (char=? (@ inp) #\=)
+                (char=? (@ inp) #\!))
+                (list left inp))
+            ((or (char=? (@ inp) #\{) (char=? (@ inp) #\;))
+                (#f))
+            (else
+              (splittest ($ inp) (append left (list (@ inp)))))
+)))
+
 
 (define <test>
-    (lambda (inp cont sumlist)
-      (next-sym inp
-            (lambda (inp2 sym)
-                (cond ((or (equal? sym 'LBRA) (equal? sym 'SEMI))   ;; deux cas: ligne finit par debut SEQ ou par un ;
-                       (<sum> (append sumlist inp) cont)
-                      ((or
-                          (equal? sym2 'EQ)
-                          (equal? sym2 'GT)
-                          (equal? sym2 'GE)
-                          (equal? sym2 'LT)
-                          (equal? sym2 'LE))
-                       (cont inp2
-                           (append (list sym2) (<sum> sumlist cont) (<sum> inp2 cont)))
-                      (else
-                       (<test> (append sumlist (@ inp)) cont)))))))))
+    (lambda (inp cont)
+    (let ((split (splittest inp '())))
+        ((if (not split)  ;; Si vrai: un test, sinon un sum
+            (<sum> inp cont)
+            (next-sym (car (cdr split)) ;; verifier le premier symbole du <term>
+                  (lambda (inp2 sym)
+                  (cont inp2
+                        (append (list sym) (<sum> (car split) (lambda (temp) (temp))))))))))))
 
 (define <sum>
   (lambda (inp cont)
@@ -438,5 +446,5 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace main parse-and-execute parse execute expect <stat> exec-stat exec-expr exec-SEQ <seq>)
+(trace main parse-and-execute parse next-sym execute expect <stat> combine exec-stat exec-expr exec-SEQ <seq> <test> splittest)
 ;;;----------------------------------------------------------------------------
