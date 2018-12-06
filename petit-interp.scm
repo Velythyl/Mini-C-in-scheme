@@ -299,18 +299,31 @@
                 (next-sym inp2 ;; verifier 2e symbole du <expr>
                           (lambda (inp3 sym2)
                             (if (and (string? sym1) ;; combinaison "id =" ?
-                                     (equal? sym2 'EQ))
+                                     (equal? sym2 'ASSI))
                                 (<expr> inp3
                                         (lambda (inp expr)
                                           (cont inp
                                                 (list 'ASSIGN
                                                       sym1
                                                       expr))))
-                                (<test> inp cont))))))))
+                                (<test> inp cont '()))))))))
 
 (define <test>
-  (lambda (inp cont)
-    (<sum> inp cont)))
+    (lambda (inp cont sumlist)
+      (next-sym inp
+            (lambda (inp2 sym)
+                (cond ((or (equal? sym 'LBRA) (equal? sym 'SEMI))   ;; deux cas: ligne finit par debut SEQ ou par un ;
+                       (<sum> (append sumlist inp) cont)
+                      ((or
+                          (equal? sym2 'EQ)
+                          (equal? sym2 'GT)
+                          (equal? sym2 'GE)
+                          (equal? sym2 'LT)
+                          (equal? sym2 'LE))
+                       (cont inp2
+                           (append (list sym2) (<sum> sumlist cont) (<sum> inp2 cont)))
+                      (else
+                       (<test> (append sumlist (@ inp)) cont)))))))))
 
 (define <sum>
   (lambda (inp cont)
@@ -394,19 +407,6 @@
                     (exec-SEQ env (append output outputstatic ) (cdr ast) cont))
             )
 )))
-
-
-(define <seq>
-  (lambda (inp cont statlist)
-  (if (char=? (@ inp) #\})  ;; TODO remplacer par next sym ?
-      (expect 'RBRA
-          inp
-          (lambda (inp)
-          (cont inp statlist)))
-    (<stat> inp
-        (lambda (inp stat)
-                (<seq> inp cont (append statlist (list stat)))
-)))))
 
 ;; La fonction exec-expr fait l'interpretation d'une expression du
 ;; programme.  Elle prend quatre parametres : une liste d'association
