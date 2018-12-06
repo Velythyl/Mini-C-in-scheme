@@ -243,7 +243,7 @@
                     ((DO-SYM)
                     (<do_stat> inp2 cont))
                     ((LBRA)
-                    (<lbra_stat> inp2 cont))
+                    (<seq> inp2 cont (list 'SEQ)))
                   (else
                    (<expr_stat> inp cont)))))))
 
@@ -257,20 +257,17 @@
                               (cont inp
                                     (list 'PRINT expr))))))))
 
-(define <lbra_stat>
-  (lambda (inp cont)
-    (<stat> inp  ;; analyser un stat qui est entre les brackets
-                  (lambda (inp stat)
-                    (expect 'RBRA ;; verifier qu'il y a "}" apres   # TODO ca marche pas
-                            inp
-                            (lambda (inp)
-                              (cont inp
-                                    (list 'SEQ stat))))))))
-
 (define <seq>
-    (lambda (inp cont)
-        
-    ))
+  (lambda (inp cont statlist)
+  (if (char=? (@ inp) #\})  ;; TODO remplacer par next sym ?
+      (expect 'RBRA
+          inp
+          (lambda (inp)
+          (cont inp statlist)))
+    (<stat> inp
+        (lambda (inp stat)
+                (<seq> inp cont (append statlist (list stat)))
+)))))
 
 (define <paren_expr>
   (lambda (inp cont)
@@ -302,18 +299,31 @@
                 (next-sym inp2 ;; verifier 2e symbole du <expr>
                           (lambda (inp3 sym2)
                             (if (and (string? sym1) ;; combinaison "id =" ?
-                                     (equal? sym2 'EQ))
+                                     (equal? sym2 'ASSI))
                                 (<expr> inp3
                                         (lambda (inp expr)
                                           (cont inp
                                                 (list 'ASSIGN
                                                       sym1
                                                       expr))))
-                                (<test> inp cont))))))))
+                                (<test> inp cont '()))))))))
 
 (define <test>
-  (lambda (inp cont)
-    (<sum> inp cont)))
+    (lambda (inp cont sumlist)
+      (next-sym inp
+            (lambda (inp2 sym)
+                (cond ((or (equal? sym 'RPAR) (equal? sym 'SEMI))
+                       (<sum> (append sumlist inp) cont)
+                      ((or
+                          (equal? sym2 'EQ)
+                          (equal? sym2 'GT)
+                          (equal? sym2 'GE)
+                          (equal? sym2 'LT)
+                          (equal? sym2 'LE))
+                       (cont inp2
+                           (append (list sym2) (<sum> sumlist cont) (<sum> inp2 cont)))
+                      (else
+                       (<test> (append sumlist (@ inp)) cont)))))))))
 
 (define <sum>
   (lambda (inp cont)
@@ -380,21 +390,23 @@
                     (cont env output)))) ;; continuer en ignorant le resultat
 
         ((SEQ)
-        (exec-stat env ;; evaluer l'expression
+        (exec-SEQ env ;; evaluer l'expression
                   output
-                  (cadr ast)
-                  (lambda (env output)
+                  (cdr ast)
+                  (lambda (env output val)
                     (cont env output)))) ;; continuer en ignorant le resultat
 
       (else
        "internal error (unknown statement AST)\n"))))
 
 (define exec-SEQ
-    (lambda (env output ast cont)
-        ((not (null? (car ast)))
-            ((exec-stat env output (cadr ast) cont)
-            exec-SEQ env output (cdr car) cont))
-    ))
+    (lambda (env outputstatic ast cont)
+        (if (pair? ast)
+            (exec-stat env outputstatic (car ast)
+                (lambda (env ouput cont)
+                    (exec-SEQ env (append output outputstatic ) (cdr ast) cont))
+            )
+)))
 
 ;; La fonction exec-expr fait l'interpretation d'une expression du
 ;; programme.  Elle prend quatre parametres : une liste d'association
@@ -426,5 +438,5 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace main parse-and-execute parse execute expect <stat> exec-stat exec-expr exec-SEQ)
+(trace main parse-and-execute parse execute expect <stat> exec-stat exec-expr exec-SEQ <seq>)
 ;;;----------------------------------------------------------------------------
