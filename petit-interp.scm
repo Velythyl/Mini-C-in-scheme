@@ -312,7 +312,7 @@
     (lambda (inp cont sumlist)
       (next-sym inp
             (lambda (inp2 sym)
-                (cond ((or (equal? sym 'RPAR) (equal? sym 'SEMI))
+                (cond ((or (equal? sym 'LBRA) (equal? sym 'SEMI))   ;; deux cas: ligne finit par debut SEQ ou par un ;
                        (<sum> (append sumlist inp) cont)
                       ((or
                           (equal? sym2 'EQ)
