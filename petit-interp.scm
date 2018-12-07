@@ -364,11 +364,33 @@
 
 (define <sum>
   (lambda (inp cont)
-    (<mult> inp cont)))
+    (<mult> inp
+        (lambda (inp2 term1)
+        (next-sym inp2
+            (lambda (inp3 sym)
+            (if (or (equal? sym 'PLUS) (equal? sym 'MINUS))
+                (<sum> inp3
+                    (lambda (inp4 term2)
+                    (cont inp4
+                        (append (append (list sym) (list term1)) (list term2)))))
+                (cont inp2 term1)
+            )
+))))))
 
 (define <mult>
   (lambda (inp cont)
-    (<term> inp cont)))
+    (<term> inp
+        (lambda (inp2 term1)
+        (next-sym inp2
+            (lambda (inp3 sym)
+            (if (or (equal? sym 'MULT) (equal? sym 'MODU) (equal? sym 'DIVI))
+                (<mult> inp3
+                    (lambda (inp4 term2)
+                    (cont inp4
+                        (append (append (list sym) (list term1)) (list term2)))))
+                (cont inp2 term1)
+            )
+))))))
 
 (define <term>
   (lambda (inp cont)
@@ -475,5 +497,5 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <seq> <test>)
+(trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
 ;;;----------------------------------------------------------------------------
