@@ -259,14 +259,16 @@
 
 (define <seq>
   (lambda (inp cont statlist)
-  (if (char=? (@ inp) #\})  ;; TODO remplacer par next sym ?
-      (expect 'RBRA
-          inp
-          (lambda (inp)
-          (cont inp statlist)))
-    (<stat> inp
-        (lambda (inp stat)
-                (<seq> inp cont (append statlist (list stat)))
+      (next-sym inp ;; verifier le premier symbole du <term>
+        (lambda (inp2 sym)
+        (if (equal? sym 'RBRA)
+            (expect 'RBRA
+                inp
+                (lambda (inp)
+                (cont inp statlist)))
+            (<stat> inp
+                (lambda (inp stat)
+                        (<seq> inp cont (append statlist (list stat)))))
 )))))
 
 (define <paren_expr>
@@ -308,26 +310,11 @@
                                                       expr))))
                                 (<test> inp cont))))))))
 
-(define splittest
-    (lambda (inp left)
-        (cond ((or
-                (char=? (@ inp) #\<)
-                (char=? (@ inp) #\>)
-                (char=? (@ inp) #\=)
-                (char=? (@ inp) #\!))
-                (list left inp))
-            ((or (char=? (@ inp) #\{) (char=? (@ inp) #\;))
-                (#f))
-            (else
-              (splittest ($ inp) (append left (list (@ inp)))))
-)))
-
-
 (define <test>
     (lambda (inp cont)
     (<sum> inp
         (lambda (inp2 list1)
-        ((next-sym inp2 ;; verifier le premier symbole du <term>
+        (next-sym inp2 ;; verifier le premier symbole du <term>
           (lambda (inp3 sym)
           (if (or (equal? sym 'EQ)
                   (equal? sym 'LT)
@@ -341,7 +328,7 @@
                         (append (append (list sym) (list list1)) (list list2))
                     )))
               (cont inp2 list1)
-                  ))))))))
+                  )))))))
 
 (define <sum>
   (lambda (inp cont)
@@ -456,5 +443,5 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace main parse-and-execute parse next-sym execute expect <stat> combine exec-stat exec-expr exec-SEQ <seq> <test> splittest)
+(trace main parse-and-execute parse next-sym execute expect <stat> combine exec-stat exec-expr exec-SEQ <seq> <test>)
 ;;;----------------------------------------------------------------------------
