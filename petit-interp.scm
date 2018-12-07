@@ -259,6 +259,8 @@
                               (cont inp
                                     (list 'PRINT expr))))))))
 
+;; L'ASA d'un if est de forme (IF (CONDITION) (STAT si vrai))
+;; L'ASA d'un if-else est de forme (IF-ELSE (CONDITION) (STAT si vrai) (STAT si faux))
 (define <if_stat>
     (lambda (inp cont)
         (<paren_expr> inp
@@ -274,6 +276,7 @@
                             (cont inp3 (append (append (list 'IF) (list parenexpr)) (list statexpr)))
 )))))))))
 
+;; L'ASA d'une SEQ est de forme (SEQ (STAT) (STAT) ... (STAT))
 (define <seq>
   (lambda (inp cont statlist)
       (next-sym inp
@@ -288,6 +291,7 @@
                         (<seq> inp cont (append statlist (list stat)))))
 )))))
 
+;; L'ASA d'un while est de forme: (WHILE (CONDITION) (STAT))
 (define <while_stat>
     (lambda (inp cont)
     (<paren_expr> inp
@@ -296,6 +300,7 @@
             (lambda (inp3 statexpr)
             (cont inp3 (append (append (list 'WHILE) (list parenexpr)) (list statexpr)))))))))
 
+;; L'ASA d'un do while est de forme: (DO (STAT) (CONDITION))
 (define <do_stat>
     (lambda (inp cont)
     (<stat> inp
