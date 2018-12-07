@@ -1,4 +1,3 @@
 {
-    print(2<4);
-    print(3);
+    if (1) print(2); else print(3);
 }

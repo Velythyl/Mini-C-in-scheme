@@ -236,8 +236,6 @@
                     (<print_stat> inp2 cont))
                     ((IF-SYM)
                     (<if_stat> inp2 cont))
-                    ((ELSE-SYM)
-                    (<else_stat> inp2 cont))
                     ((WHILE-SYM)
                     (<while_stat> inp2 cont))
                     ((DO-SYM)
@@ -257,9 +255,24 @@
                               (cont inp
                                     (list 'PRINT expr))))))))
 
+(define <if_stat>
+    (lambda (inp cont)
+        (<test> inp
+            (lambda (inp2 parenexpr)
+                (<stat> inp2
+                    (lambda (inp3 statexpr)
+                        (next-sym inp3 ;; verifier le premier symbole du <term>
+                          (lambda (inp4 sym)
+                          (if (equal? sym 'ELSE-SYM)
+                            (<stat> inp4
+                                (lambda (inp5 statexpr2)
+                                    (cont inp5 (append (append (append (list 'IF-ELSE) (list parenexpr)) (list statexpr)) (list statexpr2)))))
+                            (cont inp3 (append (append (list 'IF) (list parenexpr)) (list statexpr)))
+)))))))))
+
 (define <seq>
   (lambda (inp cont statlist)
-      (next-sym inp ;; verifier le premier symbole du <term>
+      (next-sym inp
         (lambda (inp2 sym)
         (if (equal? sym 'RBRA)
             (expect 'RBRA
@@ -443,5 +456,5 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace main parse-and-execute parse next-sym execute expect <stat> combine exec-stat exec-expr exec-SEQ <seq> <test>)
+(trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <seq> <test>)
 ;;;----------------------------------------------------------------------------
