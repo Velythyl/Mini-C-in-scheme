@@ -257,7 +257,7 @@
 
 (define <if_stat>
     (lambda (inp cont)
-        (<test> inp
+        (<paren_expr> inp
             (lambda (inp2 parenexpr)
                 (<stat> inp2
                     (lambda (inp3 statexpr)
@@ -283,6 +283,25 @@
                 (lambda (inp stat)
                         (<seq> inp cont (append statlist (list stat)))))
 )))))
+
+(define <while_stat>
+    (lambda (inp cont)
+    (<paren_expr> inp
+        (lambda (inp2 parenexpr)
+        (<stat> inp2
+            (lambda (inp3 statexpr)
+            (cont inp3 (append (append (list 'WHILE) (list parenexpr)) (list statexpr)))))))))
+
+(define <do_stat>
+    (lambda (inp cont)
+    (<stat> inp
+        (lambda (inp2 statexpr)
+        (expect 'WHILE-SYM
+            inp2
+            (lambda (inp3)
+            (<paren_expr> inp3
+                (lambda (inp4 parenexpr)
+                (cont inp4 (append (append (list 'DO) (list statexpr)) (list parenexpr)))))))))))
 
 (define <paren_expr>
   (lambda (inp cont)
