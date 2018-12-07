@@ -326,12 +326,22 @@
 (define <test>
     (lambda (inp cont)
     (<sum> inp
-        (lambda (inp2 list)
-        ((next-sym in2 ;; verifier le premier symbole du <term>
+        (lambda (inp2 list1)
+        ((next-sym inp2 ;; verifier le premier symbole du <term>
           (lambda (inp3 sym)
-            cont inp3
-                (append (list sym) list)
-)))))))
+          (if (or (equal? sym 'EQ)
+                  (equal? sym 'LT)
+                  (equal? sym 'GT)
+                  (equal? sym 'LE)
+                  (equal? sym 'GE)
+                  (equal? sym 'NE))
+              (<sum> inp3
+                  (lambda (inp4 list2)
+                    (cont inp4
+                        (append (append (list sym) (list list1)) (list list2))
+                    )))
+              (cont inp2 list1)
+                  ))))))))
 
 (define <sum>
   (lambda (inp cont)
