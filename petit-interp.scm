@@ -57,11 +57,11 @@
                    ((char=? c #\{) (cont ($ inp) 'LBRA))
                    ((char=? c #\}) (cont ($ inp) 'RBRA))
 
-                   ((char=? c #\+) (cont ($ inp) 'PLUS))
-                   ((char=? c #\-) (cont ($ inp) 'MINUS))
-                   ((char=? c #\*) (cont ($ inp) 'MULT))
-                   ((char=? c #\/) (cont ($ inp) 'DIVI))
-                   ((char=? c #\%) (cont ($ inp) 'MODU))
+                   ((char=? c #\+) (cont ($ inp) 'ADD))
+                   ((char=? c #\-) (cont ($ inp) 'SUB))
+                   ((char=? c #\*) (cont ($ inp) 'MUL))
+                   ((char=? c #\/) (cont ($ inp) 'DIV))
+                   ((char=? c #\%) (cont ($ inp) 'MOD))
 
                    ((char=? c #\=) ((combine 'ASSI ($ inp) cont)))
                    ((char=? c #\>) ((combine 'GT ($ inp) cont)))
@@ -368,7 +368,7 @@
         (lambda (inp2 term1)
         (next-sym inp2
             (lambda (inp3 sym)
-            (if (or (equal? sym 'PLUS) (equal? sym 'MINUS))
+            (if (or (equal? sym 'ADD) (equal? sym 'SUB))
                 (<sum> inp3
                     (lambda (inp4 term2)
                     (cont inp4
@@ -383,7 +383,7 @@
         (lambda (inp2 term1)
         (next-sym inp2
             (lambda (inp3 sym)
-            (if (or (equal? sym 'MULT) (equal? sym 'MODU) (equal? sym 'DIVI))
+            (if (or (equal? sym 'MUL) (equal? sym 'MOD) (equal? sym 'DIV))
                 (<mult> inp3
                     (lambda (inp4 term2)
                     (cont inp4
