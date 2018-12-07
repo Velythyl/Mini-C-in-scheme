@@ -57,6 +57,10 @@
                    ((char=? c #\{) (cont ($ inp) 'LBRA))
                    ((char=? c #\}) (cont ($ inp) 'RBRA))
 
+                   ;; Les symboles arithmetiques sont les memes pour les
+                   ;; symboles qui seront traites dans l'interpreteur: ceci
+                   ;; rend la creation de l'ASA bien plus simple. En effet, on a
+                   ;; qu'a utiliser le sym comme symbole pour l'ASA.
                    ((char=? c #\+) (cont ($ inp) 'ADD))
                    ((char=? c #\-) (cont ($ inp) 'SUB))
                    ((char=? c #\*) (cont ($ inp) 'MUL))
