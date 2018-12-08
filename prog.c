@@ -1,9 +1,5 @@
 {
-    nb = 2;
-    i = 1;
-    while (i < 9) {
-        nb = nb*nb;
-        i = i+1;
-        print(nb);
-    }
+    print(1);
+    print(2);
+    print(3);
 }

@@ -264,7 +264,7 @@
                     ((DO-SYM)
                     (<do_stat> inp2 cont))
                     ((LBRA)
-                    (<seq> inp2 cont (list 'SEQ)))
+                    (<seq> inp2 cont '()))
                   (else
                    (<expr_stat> inp cont)))))))
 
@@ -295,6 +295,18 @@
                             (cont inp3 (append (append (list 'IF) (list parenexpr)) (list statexpr)))
 )))))))))
 
+(define foldr
+(lambda (f base lst)
+(if (null? lst)
+base
+(f (car lst)
+(foldr f base (cdr lst))))))
+
+;; Encapsule la list2 puis l'ajoute a la list1
+(define deep_append
+    (lambda (list1 list2)
+    (append list1 (list list2))))
+
 ;; L'ASA d'une SEQ est de forme (SEQ (STAT) (STAT) ... (STAT))
 (define <seq>
   (lambda (inp cont statlist)
@@ -304,10 +316,12 @@
             (expect 'RBRA
                 inp
                 (lambda (inp)
-                (cont inp statlist)))
-            (<stat> inp
-                (lambda (inp stat)
-                        (<seq> inp cont (append statlist (list stat)))))
+                (cont inp
+                    ;; prends la liste de forme ((SEQ (STAT)) (SEQ (STAT)) ...) et la rend en forme (SEQ (STAT) (SEQ (STAT) ...
+                    (foldr deep_append (list 'EMPTY) statlist))))
+                (<stat> inp
+                    (lambda (inp stat)
+                            (<seq> inp cont (append statlist (list (list 'SEQ stat))))))
 )))))
 
 ;; L'ASA d'un while est de forme: (WHILE (CONDITION) (STAT))
@@ -580,6 +594,10 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
+<<<<<<< HEAD
 (trace exec-expr exec-stat exec-while)
+=======
+(trace exec-expr <seq> deep_append)
+>>>>>>> 46b825af49fe8462928cbba225852c6822ed4346
 ; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
 ;;;----------------------------------------------------------------------------
