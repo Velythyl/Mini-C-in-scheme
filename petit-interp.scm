@@ -483,8 +483,38 @@
                   (lambda (env output val)
                     (cont env output)))) ;; continuer en ignorant le resultat
 
+        ((IF)
+        (if (exec-expr env output (cadr ast) cont)
+                  (exec-stat env output (caddr ast) cont)
+                  ))
+
+        ((IF-ELSE)
+        (if (exec-expr env output (cadr ast) cont)
+                  (exec-stat env output (caddr ast) cont)
+                  (exec-stat env output (cadddr ast) cont)))
+
+        ((WHILE)
+        (exec-while env output ast cont))
+
+        ((DO)
+        (exec-do-while env output ast cont))
+
       (else
        "internal error (unknown statement AST)\n"))))
+
+(define exec-while
+    (lambda (env output ast cont)
+       (if (exec-expr env output (cadr ast) cont)
+          (exec-expr env output (caddr ast)
+              (exec-while env output ast cont))
+    )))
+
+(define exec-do-while
+    (lambda (env output ast cont)
+       (exec-expr env output (cadr ast) cont)
+       (if (exec-expr env output (caddr ast) cont)
+              (exec-while env output ast cont))
+    ))
 
 (define exec-SEQ
     (lambda (env outputstatic ast cont)
@@ -521,13 +551,18 @@
   (lambda (env output ast cont)
     (cond
 
-      ((and (pair? ast) (assoc (car ast) opers))
+      ((and (pair? ast) (assoc (car ast) opers)) ;; eval +,-,*,/,% and all tests
        (let ((fn (cdr (assoc (car ast) opers))))
-         (apply fn (map (lambda (x) (exec-expr env output x (lambda (env output val) val))) (cdr ast)))))
+         (apply fn (map (lambda (x) (exec-expr env output x
+             (lambda (env output val) val))) (cdr ast)))))
 
-      ((and (pair? ast) (equal? (car ast) 'ASSIGN))
+      ((and (pair? ast) (equal? (car ast) 'ASSIGN)) ;; assign value to var and add it to env
         (exec-expr (cons (cons (cadr ast)
            (exec-expr env output (caddr ast) cont))) output (cadddr ast) cont))
+
+      ;; TODO - need to be validated once SEQ is fixed...
+      ((and (symbol? ast) (assoc ast env)) ;; return value of a var
+         (cdr (assoc ast env)))
 
       ((and (pair? ast) (equal? (car ast) 'INT))
        (cont env
@@ -545,6 +580,6 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace exec-expr)
+(trace exec-expr exec-stat exec-while)
 ; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
 ;;;----------------------------------------------------------------------------
