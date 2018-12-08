@@ -67,9 +67,9 @@
                    ((char=? c #\/) (cont ($ inp) 'DIV))
                    ((char=? c #\%) (cont ($ inp) 'MOD))
 
-                   ((char=? c #\=) ((combine 'ASSI ($ inp) cont)))
-                   ((char=? c #\>) ((combine 'GT ($ inp) cont)))
-                   ((char=? c #\<) ((combine 'LT ($ inp) cont)))
+                   ((char=? c #\=) (combine 'ASSI ($ inp) cont))
+                   ((char=? c #\>) (combine 'GT ($ inp) cont))
+                   ((char=? c #\<) (combine 'LT ($ inp) cont))
                    ((char=? c #\!) ((if (char=? (@ ($ inp)) #\=) (cont ($ ($ inp)) 'NEQ) syntax-error)))
 
                    (else
@@ -506,5 +506,5 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
+; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
 ;;;----------------------------------------------------------------------------
