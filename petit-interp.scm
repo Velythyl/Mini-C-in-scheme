@@ -444,9 +444,9 @@ base
                     cont)
                 (cont inp2 (if (null? multlist)
                     (append multlist term1)                 ;; Si un term
-                    (if (equal? (length multist) 1)
-                        (append (car multist) (list term1)) ;; Si (SYM (TERM))
-                        (append multist (list term1)))      ;; Sinon
+                    (if (equal? (length multlist) 1)
+                        (append (car multlist) (list term1)) ;; Si (SYM (TERM))
+                        (append multlist (list term1)))      ;; Sinon
                 ))
             )
 ))))))
