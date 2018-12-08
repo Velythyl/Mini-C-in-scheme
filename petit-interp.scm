@@ -387,6 +387,7 @@ base
 (define <test>
     (lambda (inp cont)
     (<sum> inp
+        '()
         (lambda (inp2 list1)
         (next-sym inp2 ;; verifier le premier symbole du <term>
           (lambda (inp3 sym)
@@ -405,32 +406,37 @@ base
                   )))))))
 
 (define <sum>
-  (lambda (inp cont)
+  (lambda (inp sumlist cont)
     (<mult> inp
+        '()
         (lambda (inp2 term1)
         (next-sym inp2
             (lambda (inp3 sym)
             (if (or (equal? sym 'ADD) (equal? sym 'SUB))
                 (<sum> inp3
-                    (lambda (inp4 term2)
-                    (cont inp4
-                        (append (append (list sym) (list term1)) (list term2)))))
-                (cont inp2 term1)
+                    (if (null? sumlist)
+                        (list (append (list sym) (append sumlist (list term1))))
+                        (append (list sym) (list (append (car sumlist) (list term1))))
+                    )
+                    cont)
+                (cont inp2 (append sumlist (list term1)))
             )
 ))))))
 
 (define <mult>
-  (lambda (inp cont)
+  (lambda (inp multlist cont)
     (<term> inp
         (lambda (inp2 term1)
         (next-sym inp2
             (lambda (inp3 sym)
             (if (or (equal? sym 'MUL) (equal? sym 'MOD) (equal? sym 'DIV))
                 (<mult> inp3
-                    (lambda (inp4 term2)
-                    (cont inp4
-                        (append (append (list sym) (list term1)) (list term2)))))
-                (cont inp2 term1)
+                    (if (null? multlist)
+                        (list (append (list sym) (append multlist (list term1))))
+                        (append (list sym) (list (append (car multlist) (list term1))))
+                    )
+                    cont)
+                (cont inp2 (append multlist (list term1)))
             )
 ))))))
 
@@ -513,6 +519,9 @@ base
         ((DO)
         (exec-do-while env output ast cont))
 
+        ((EMPTY)
+        cont env output)
+
       (else
        "internal error (unknown statement AST)\n"))))
 
@@ -533,11 +542,12 @@ base
 (define exec-SEQ
     (lambda (env output ast cont)
         (if (equal? (car ast) 'EMPTY)
-            (cont env output ast)
-            (exec-stat env output (cdr ast)
-                (lambda (env output2 cont)
-                    (exec-SEQ env (append output output2 ) (cddr ast) cont))
-            )
+            (cont env output)
+
+            (exec-stat env output (car ast)
+                (lambda (env output2 val)
+                (exec-seq env output2 (cadr ast) cont)))
+
 )))
 
 ;; La fonction exec-expr fait l'interpretation d'une expression du
@@ -595,6 +605,6 @@ base
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace exec-expr exec-stat exec-while exec-SEQ)
+(trace exec-expr exec-stat exec-while exec-SEQ deep_append <sum> <mult>)
 ; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
 ;;;----------------------------------------------------------------------------
