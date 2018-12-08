@@ -417,7 +417,7 @@ base
             (lambda (inp3 sym)
             (if (or (equal? sym 'ADD) (equal? sym 'SUB))
                 (<sum> inp3
-                    (if (null? sumlist)
+                    (if (or (null? sumlist) (< (length sumlist) 4))
                         (list (append (list sym) (append sumlist (list term1))))        ;; Premiere recursion
                         (append (list sym) (list (append (car sumlist) (list term1))))  ;; Toutes les autres
                     )
@@ -439,7 +439,7 @@ base
             (lambda (inp3 sym)
             (if (or (equal? sym 'MUL) (equal? sym 'MOD) (equal? sym 'DIV))
                 (<mult> inp3
-                    (if (null? multlist)
+                    (if (or (null? multlist) (< (length multlist) 4))
                         (list (append (list sym) (append multlist (list term1))))       ;; Premiere recursion
                         (append (list sym) (list (append (car multlist) (list term1)))) ;; Toutes les autres
                     )
