@@ -15,6 +15,22 @@
 ;;; set!, set-car!, vector-set!, list-set!, begin, print, display,
 ;;; etc).
 
+;; Liste des opérateurs
+(define opers
+    (list (cons 'ADD (lambda (x y) (+ x y)))
+          (cons 'SUB (lambda (x y) (- x y)))
+          (cons 'MUL (lambda (x y) (* x y)))
+          (cons 'DIV (lambda (x y) (quotient x y)))
+          (cons 'MOD (lambda (x y) (modulo x y)))
+          (cons 'LT (lambda (x y) (< x y)))
+          (cons 'LE (lambda (x y) (<= x y)))
+          (cons 'GT (lambda (x y) (> x y)))
+          (cons 'GE (lambda (x y) (>= x y)))
+          (cons 'EQ (lambda (x y) (= x y)))
+          (cons 'NE (lambda (x y) (not (= x y))))
+    ))
+
+
 ;; La fonction parse-and-execute recoit en parametre une liste des
 ;; caracteres qui constituent le programme a interpreter.  La
 ;; fonction retourne une chaine de caracteres qui sera imprimee comme
@@ -70,20 +86,23 @@
                    ((char=? c #\=) (combine 'ASSI ($ inp) cont))
                    ((char=? c #\>) (combine 'GT ($ inp) cont))
                    ((char=? c #\<) (combine 'LT ($ inp) cont))
-                   ((char=? c #\!) ((if (char=? (@ ($ inp)) #\=) (cont ($ ($ inp)) 'NEQ) syntax-error)))
+                   ((char=? c #\!)
+                       (if (char=? (@ ($ inp)) #\=)
+                           (cont ($ ($ inp)) 'NEQ)
+                           syntax-error))
 
                    (else
                     (syntax-error))))))))
 
 (define combine
     (lambda (sym inp cont)
-        (if (char=? (@ inp) #\=)(
+        (if (char=? (@ inp) #\=)
             (cond
-                ((equal? sym 'ASSI)((cont ($ inp) 'EQ)))
-                ((equal? sym 'GT)((cont ($ inp) 'GE)))
-                ((equal? sym 'LT)((cont ($ inp) 'LE)))
+                ((equal? sym 'ASSI) (cont ($ inp) 'EQ))
+                ((equal? sym 'GT) (cont ($ inp) 'GE))
+                ((equal? sym 'LT) (cont ($ inp) 'LE))
             )
-        ) (cont inp sym))
+        (cont inp sym))
     )
 )
 
@@ -486,11 +505,31 @@
 ;; l'expression et une chaine de caracteres qui contient la sortie
 ;; accumulee apres l'interpretation de l'expression.
 
+; (define exec-expr
+;   (lambda (env output ast cont)
+;     (case (car ast)
+;
+;       ((INT)
+;        (cont env
+;              output
+;              (cadr ast))) ;; retourner la valeur de la constante
+;
+;       (else
+;        "internal error (unknown expression AST)\n"))))
+
 (define exec-expr
   (lambda (env output ast cont)
-    (case (car ast)
+    (cond
 
-      ((INT)
+      ((and (pair? ast) (assoc (car ast) opers))
+       (let ((fn (cdr (assoc (car ast) opers))))
+         (apply fn (map (lambda (x) (exec-expr env output x (lambda (env output val) val))) (cdr ast)))))
+
+      ((and (pair? ast) (equal? (car ast) 'ASSIGN))
+        (exec-expr (cons (cons (cadr ast)
+           (exec-expr env output (caddr ast) cont))) output (cadddr ast) cont))
+
+      ((and (pair? ast) (equal? (car ast) 'INT))
        (cont env
              output
              (cadr ast))) ;; retourner la valeur de la constante
@@ -506,5 +545,6 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
+(trace exec-expr next-sym)
 ; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
 ;;;----------------------------------------------------------------------------
