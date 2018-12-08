@@ -416,8 +416,8 @@ base
             (if (or (equal? sym 'ADD) (equal? sym 'SUB))
                 (<sum> inp3
                     (if (null? sumlist)
-                        (list (append (list sym) (append sumlist (list term1))))
-                        (append (list sym) (list (append (car sumlist) (list term1))))
+                        (list (append (list sym) (append sumlist (list term1))))        ;; Premiere recursion
+                        (append (list sym) (list (append (car sumlist) (list term1))))  ;; Toutes les autres
                     )
                     cont)
                 (cont inp2 (if (null? sumlist)
@@ -438,8 +438,8 @@ base
             (if (or (equal? sym 'MUL) (equal? sym 'MOD) (equal? sym 'DIV))
                 (<mult> inp3
                     (if (null? multlist)
-                        (list (append (list sym) (append multlist (list term1))))
-                        (append (list sym) (list (append (car multlist) (list term1))))
+                        (list (append (list sym) (append multlist (list term1))))       ;; Premiere recursion
+                        (append (list sym) (list (append (car multlist) (list term1)))) ;; Toutes les autres
                     )
                     cont)
                 (cont inp2 (if (null? multlist)
