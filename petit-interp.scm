@@ -407,7 +407,7 @@ base
                   )))))))
 
 ;; TODO Faire fonction generale pour sum et mult? car meme logique...    
-    
+
 (define <sum>
   (lambda (inp sumlist cont)
     (<mult> inp
@@ -417,9 +417,13 @@ base
             (lambda (inp3 sym)
             (if (or (equal? sym 'ADD) (equal? sym 'SUB))
                 (<sum> inp3
-                    (if (or (null? sumlist) (< (length sumlist) 4))
+                    (if (null? sumlist)
                         (list (append (list sym) (append sumlist (list term1))))        ;; Premiere recursion
-                        (append (list sym) (list (append (car sumlist) (list term1))))  ;; Toutes les autres
+                        (if (< (length sumlist) 2)
+                            (append (list sym) (list (append (car sumlist) (list term1))))
+                            (append (list sym) (list (append sumlist (list term1))))
+                        )
+                         ;; Toutes les autres
                     )
                     cont)
                 (cont inp2 (if (null? sumlist)
@@ -441,7 +445,10 @@ base
                 (<mult> inp3
                     (if (or (null? multlist) (< (length multlist) 4))
                         (list (append (list sym) (append multlist (list term1))))       ;; Premiere recursion
-                        (append (list sym) (list (append (car multlist) (list term1)))) ;; Toutes les autres
+                        (if (< (length multlist) 2)
+                            (append (list sym) (list (append (car multlist) (list term1))))
+                            (append (list sym) (list (append multlist (list term1))))
+                        )
                     )
                     cont)
                 (cont inp2 (if (null? multlist)
