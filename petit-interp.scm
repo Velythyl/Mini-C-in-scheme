@@ -531,11 +531,12 @@ base
     ))
 
 (define exec-SEQ
-    (lambda (env outputstatic ast cont)
-        (if (pair? ast)
-            (exec-stat env outputstatic (car ast)
-                (lambda (env ouput cont)
-                    (exec-SEQ env (append output outputstatic ) (cdr ast) cont))
+    (lambda (env output ast cont)
+        (if (equal? (car ast) 'EMPTY)
+            (cont env output ast)
+            (exec-stat env output (cdr ast)
+                (lambda (env output2 cont)
+                    (exec-SEQ env (append output output2 ) (cddr ast) cont))
             )
 )))
 
@@ -594,10 +595,6 @@ base
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-<<<<<<< HEAD
-(trace exec-expr exec-stat exec-while)
-=======
-(trace exec-expr <seq> deep_append)
->>>>>>> 46b825af49fe8462928cbba225852c6822ed4346
+(trace exec-expr exec-stat exec-while exec-SEQ)
 ; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
 ;;;----------------------------------------------------------------------------
