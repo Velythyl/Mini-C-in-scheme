@@ -443,7 +443,7 @@ base
             (lambda (inp3 sym)
             (if (or (equal? sym 'MUL) (equal? sym 'MOD) (equal? sym 'DIV))
                 (<mult> inp3
-                    (if (or (null? multlist) (< (length multlist) 4))
+                    (if (null? multlist)
                         (list (append (list sym) (append multlist (list term1))))       ;; Premiere recursion
                         (if (< (length multlist) 2)
                             (append (list sym) (list (append (car multlist) (list term1))))
