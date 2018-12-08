@@ -406,7 +406,7 @@ base
               (cont inp2 list1)
                   )))))))
 
-;; TODO Faire fonction generale pour sum et mult? car meme logique...    
+;; TODO Faire fonction generale pour sum et mult? car meme logique...
 
 (define <sum>
   (lambda (inp sumlist cont)
@@ -545,13 +545,14 @@ base
       (else
        "internal error (unknown statement AST)\n"))))
 
-(define exec-while
+(define exec-while ;; hack: let is used for is side effect of evaluating 2 expr
     (lambda (env output ast cont)
        (if (exec-expr env output (cadr ast) cont)
-          (exec-expr env output (caddr ast)
-              (exec-while env output ast cont))
-    )))
+          (let ((tmp1 (exec-stat env output (caddr ast) cont)))
+               (exec-while env output ast cont)))
+    ))
 
+;; TODO - need to be fixed like exec-while...
 (define exec-do-while
     (lambda (env output ast cont)
        (exec-expr env output (cadr ast) cont)
@@ -586,32 +587,23 @@ base
 ;; l'expression et une chaine de caracteres qui contient la sortie
 ;; accumulee apres l'interpretation de l'expression.
 
-; (define exec-expr
-;   (lambda (env output ast cont)
-;     (case (car ast)
-;
-;       ((INT)
-;        (cont env
-;              output
-;              (cadr ast))) ;; retourner la valeur de la constante
-;
-;       (else
-;        "internal error (unknown expression AST)\n"))))
-
 (define exec-expr
   (lambda (env output ast cont)
     (cond
 
-      ((and (pair? ast) (assoc (car ast) opers)) ;; eval +,-,*,/,% and all tests
+      ;; eval +,-,*,/,% and all tests (<, <=, >, >=, ==, !=)
+      ((and (pair? ast) (assoc (car ast) opers))
        (let ((fn (cdr (assoc (car ast) opers))))
          (apply fn (map (lambda (x) (exec-expr env output x
              (lambda (env output val) val))) (cdr ast)))))
 
-      ((and (pair? ast) (equal? (car ast) 'ASSIGN)) ;; assign value to var and add it to env
-        (exec-expr (cons (cons (cadr ast)
-           (exec-expr env output (caddr ast) cont))) output (cadddr ast) cont))
+      ;; assign value to var and add it to env
+      ((and (pair? ast) (equal? (car ast) 'ASSIGN))
+        (cons (cons (cadr ast)
+           (exec-expr env output (caddr ast) (lambda (env output val) val)))
+            env))
 
-      ;; TODO - need to be validated once SEQ is fixed...
+      ;; TODO - seems to work, but must double check when SEQ is fixed...
       ((and (symbol? ast) (assoc ast env)) ;; return value of a var
          (cdr (assoc ast env)))
 
