@@ -398,6 +398,7 @@ base
                   (equal? sym 'GE)
                   (equal? sym 'NE))
               (<sum> inp3
+                  '()
                   (lambda (inp4 list2)
                     (cont inp4
                         (append (append (list sym) (list list1)) (list list2))
@@ -419,7 +420,12 @@ base
                         (append (list sym) (list (append (car sumlist) (list term1))))
                     )
                     cont)
-                (cont inp2 (append sumlist (list term1)))
+                (cont inp2 (if (null? sumlist)
+                    (append sumlist term1)                  ;; Si un term
+                    (if (equal? (length sumlist) 1)
+                        (append (car sumlist) (list term1)) ;; Si (SYM (TERM))
+                        (append sumlist (list term1)))      ;; Sinon
+                ))
             )
 ))))))
 
@@ -436,7 +442,12 @@ base
                         (append (list sym) (list (append (car multlist) (list term1))))
                     )
                     cont)
-                (cont inp2 (append multlist (list term1)))
+                (cont inp2 (if (null? multlist)
+                    (append multlist term1)                 ;; Si un term
+                    (if (equal? (length multist) 1)
+                        (append (car multist) (list term1)) ;; Si (SYM (TERM))
+                        (append multist (list term1)))      ;; Sinon
+                ))
             )
 ))))))
 
