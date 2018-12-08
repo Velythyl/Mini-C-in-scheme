@@ -406,6 +406,8 @@ base
               (cont inp2 list1)
                   )))))))
 
+;; TODO Faire fonction generale pour sum et mult? car meme logique...    
+    
 (define <sum>
   (lambda (inp sumlist cont)
     (<mult> inp
