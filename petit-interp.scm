@@ -88,8 +88,8 @@
                    ((char=? c #\<) (combine 'LT ($ inp) cont))
                    ((char=? c #\!)
                        (if (char=? (@ ($ inp)) #\=)
-                           (cont ($ ($ inp)) 'NEQ)
-                           syntax-error))
+                           (cont ($ ($ inp)) 'NE)
+                           (syntax-error)))
 
                    (else
                     (syntax-error))))))))
@@ -545,6 +545,6 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace exec-expr next-sym)
+(trace exec-expr)
 ; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
 ;;;----------------------------------------------------------------------------
