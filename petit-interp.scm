@@ -557,9 +557,15 @@ base
         (if (equal? (car ast) 'EMPTY)
             (cont env output)
 
-            (exec-stat env output (car ast)
-                (lambda (env output2 val)
-                (exec-seq env output2 (cadr ast) cont)))
+            (if (equal? (car ast) 'SEQ)
+                (exec-stat env output (cadr ast)
+                    (lambda (env output)
+                    (exec-SEQ env output (caddr ast) cont)))
+                (exec-stat env output (car ast)
+                    (lambda (env output)
+                    (exec-SEQ env output (cadr ast) cont)))
+            )
+
 
 )))
 
