@@ -37,8 +37,8 @@
     (lambda (x y fn)
        (if (= y 0)
           (div-zero-error)
-          (fn x y)))
-    )
+          (fn x y))
+    ))
 
 ;; La fonction parse-and-execute recoit en parametre une liste des
 ;; caracteres qui constituent le programme a interpreter.  La
@@ -625,6 +625,9 @@ base
              (lambda (env output val) val))) (cdr ast)))))
 
       ;; assign value to var and add it to env
+      ;; (car   ast) : ASSIGN
+      ;; (cadr  ast) : symbole, e.g. "i"
+      ;; (caddr ast) : expression
       ;; TODO - verifier si var existe, si oui, remplacer son contenu
       ((and (pair? ast) (equal? (car ast) 'ASSIGN))
         (cons (cons (cadr ast)
