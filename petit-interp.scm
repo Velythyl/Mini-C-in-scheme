@@ -580,7 +580,7 @@ base
 
 (define exec-do-while
     (lambda (env output ast cont)
-       (cond ((#t)
+       (cond (#t
           (exec-expr env output (cadr ast) cont)
           (if (exec-expr env output (caddr ast) cont)
                  (exec-while env output ast cont))
