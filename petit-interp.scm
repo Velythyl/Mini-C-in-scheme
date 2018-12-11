@@ -2,8 +2,8 @@
 
 ;;; Fichier : petit-interp.scm
 
-;;; Ce programme est une version incomplete du TP2.  Vous devez uniquement
-;;; changer et ajouter du code dans la premiere section.
+;;; Auteurs: Charlie Gauthier & Normand Desmarais
+
 
 ;;;----------------------------------------------------------------------------
 
@@ -564,32 +564,29 @@ base
       (else
        "internal error (unknown statement AST)\n"))))
 
-; (define exec-while ;; hack: let is used for is side effect of evaluating 2 expr
-;     (lambda (env output ast cont)
-;        (if (exec-expr env output (cadr ast) cont)
-;           (let ((tmp1 (exec-stat env output (caddr ast) cont)))
-;                (exec-while env output ast cont)))
-;     ))
-
+;; La fonction exec-while execute le contenu de son corps
+;; si et seulement si (et tant que) la condition est vrai
 (define exec-while
     (lambda (env output ast cont)
-       (cond ((exec-expr env output (cadr ast) cont)
-          (exec-stat env output (caddr ast) cont)
-          (exec-while env output ast cont)))
+       (if (exec-expr env output (cadr ast) cont)
+          (exec-stat env output (caddr ast)
+              (lambda (env output)
+              (exec-while env output ast cont)))
+           (cont env output))
     ))
 
+;; La fonction exec-do-while execute le contenu de son corps
+;; une fois et tant que la condition est vrai
 (define exec-do-while
     (lambda (env output ast cont)
-       (cond (#t
-          (exec-expr env output (cadr ast) cont)
-          (if (exec-expr env output (caddr ast) cont)
-                 (exec-while env output ast cont))
-       ))
-       ; (exec-expr env output (cadr ast) cont)
-       ; (if (exec-expr env output (caddr ast) cont)
-       ;        (exec-while env output ast cont))
+          (exec-stat env output (cadr ast)
+              (lambda (env output)
+              (if (exec-expr env output (caddr ast) cont)
+                  (exec-do-while env output ast cont)
+                  (cont env output))))
     ))
 
+;; La fonction exec-SEQ exécute dans l'ordre les énoncés de son corps
 (define exec-SEQ
     (lambda (env output ast cont)
         (if (equal? (car ast) 'EMPTY)
@@ -633,13 +630,17 @@ base
       ;; (caddr ast) : expression
       ;; TODO - verifier si var existe, si oui, remplacer son contenu
       ((and (pair? ast) (equal? (car ast) 'ASSIGN))
-        (cons (cons (cadr ast)
-           (exec-expr env output (caddr ast) (lambda (env output val) val)))
-            env))
+        ; (cons (cons (cadr ast)
+        ;    (exec-expr env output (caddr ast) (lambda (env output val) val)))
+        ;     env))
+        (let ((var (cadr ast)) (val (exec-expr env output (caddr ast) (lambda (env output val1) val1))))
+           (cont (cons (cons var val) env) output val)))
 
       ;; TODO - seems to work, but must double check when SEQ is fixed...
-      ((and (symbol? ast) (assoc ast env)) ;; return value of a var
-         (cdr (assoc ast env)))
+      ((and (pair? ast) (equal? (car ast) 'VAR) (assoc (cadr ast) env))
+      ; ((and (symbol? ast) (assoc ast env)) ;; return value of a var
+         ; (cdr (assoc ast env))
+         (cont env output (cdr (assoc (cadr ast) env))))
 
       ((and (pair? ast) (equal? (car ast) 'INT))
        (cont env
@@ -657,6 +658,6 @@ base
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace exec-expr expect exec-stat exec-while exec-SEQ deep_append <do_stat> <sum> <mult>)
+; (trace exec-expr exec-stat exec-do-while exec-SEQ)
 ; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
 ;;;----------------------------------------------------------------------------
