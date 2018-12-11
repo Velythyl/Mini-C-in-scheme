@@ -359,7 +359,10 @@ base
             (lambda (inp3)
             (<paren_expr> inp3
                 (lambda (inp4 parenexpr)
-                (cont inp4 (append (append (list 'DO) (list statexpr)) (list parenexpr)))))))))))
+                (expect 'SEMI
+                    inp4
+                    (lambda (inp5)
+                    (cont inp5 (append (append (list 'DO) (list statexpr)) (list parenexpr)))))))))))))
 
 (define <paren_expr>
   (lambda (inp cont)
@@ -651,6 +654,6 @@ base
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace exec-expr exec-stat exec-while exec-SEQ deep_append <sum> <mult>)
+(trace exec-expr expect exec-stat exec-while exec-SEQ deep_append <do_stat> <sum> <mult>)
 ; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
 ;;;----------------------------------------------------------------------------
