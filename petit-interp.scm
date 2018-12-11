@@ -539,7 +539,7 @@ base
         (exec-SEQ env ;; evaluer l'expression
                   output
                   (cdr ast)
-                  (lambda (env output val)
+                  (lambda (env output)
                     (cont env output)))) ;; continuer en ignorant le resultat
 
         ((IF)
