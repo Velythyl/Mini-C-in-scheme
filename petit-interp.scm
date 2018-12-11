@@ -20,8 +20,8 @@
     (list (cons 'ADD (lambda (x y) (+ x y)))
           (cons 'SUB (lambda (x y) (- x y)))
           (cons 'MUL (lambda (x y) (* x y)))
-          (cons 'DIV (lambda (x y) (quotient x y)))  ;; TODO - test div par 0
-          (cons 'MOD (lambda (x y) (remainder x y))) ;; TODO - test div par 0
+          (cons 'DIV (lambda (x y) (safe-division x y quotient)))
+          (cons 'MOD (lambda (x y) (safe-division x y remainder)))
           (cons 'LT (lambda (x y) (< x y)))
           (cons 'LE (lambda (x y) (<= x y)))
           (cons 'GT (lambda (x y) (> x y)))
@@ -30,6 +30,15 @@
           (cons 'NE (lambda (x y) (not (= x y))))
     ))
 
+;; La fonction safe-division execute la fonction fn passée en paramètre
+;; sur les valeurs x et y unitquement si y != 0. Autrement elle affiche
+;; un messagge d'erreur indiquant une division par zero.
+(define safe-division
+    (lambda (x y fn)
+       (if (= y 0)
+          (div-zero-error)
+          (fn x y)))
+    )
 
 ;; La fonction parse-and-execute recoit en parametre une liste des
 ;; caracteres qui constituent le programme a interpreter.  La
@@ -128,6 +137,13 @@
 (define syntax-error
   (lambda ()
     "syntax error\n"))
+
+;; La fonction div-zero-error retourne le message d'erreur indiquant une
+;; erreur de division par 0.
+
+(define div-zero-error
+  (lambda ()
+    "division by zero error\n"))
 
 ;; La fonction blanc? teste si son unique parametre est un caractere
 ;; blanc.
