@@ -1,6 +1,1 @@
-{
-print(42);
-print(43);
-print(44);
-print(45);
-}
+do print(42) while(2 < 3);

@@ -20,8 +20,8 @@
     (list (cons 'ADD (lambda (x y) (+ x y)))
           (cons 'SUB (lambda (x y) (- x y)))
           (cons 'MUL (lambda (x y) (* x y)))
-          (cons 'DIV (lambda (x y) (quotient x y)))
-          (cons 'MOD (lambda (x y) (modulo x y)))
+          (cons 'DIV (lambda (x y) (quotient x y)))  ;; TODO - test div par 0
+          (cons 'MOD (lambda (x y) (remainder x y))) ;; TODO - test div par 0
           (cons 'LT (lambda (x y) (< x y)))
           (cons 'LE (lambda (x y) (<= x y)))
           (cons 'GT (lambda (x y) (> x y)))
@@ -545,19 +545,30 @@ base
       (else
        "internal error (unknown statement AST)\n"))))
 
-(define exec-while ;; hack: let is used for is side effect of evaluating 2 expr
+; (define exec-while ;; hack: let is used for is side effect of evaluating 2 expr
+;     (lambda (env output ast cont)
+;        (if (exec-expr env output (cadr ast) cont)
+;           (let ((tmp1 (exec-stat env output (caddr ast) cont)))
+;                (exec-while env output ast cont)))
+;     ))
+
+(define exec-while
     (lambda (env output ast cont)
-       (if (exec-expr env output (cadr ast) cont)
-          (let ((tmp1 (exec-stat env output (caddr ast) cont)))
-               (exec-while env output ast cont)))
+       (cond ((exec-expr env output (cadr ast) cont)
+          (exec-stat env output (caddr ast) cont)
+          (exec-while env output ast cont)))
     ))
 
-;; TODO - need to be fixed like exec-while...
 (define exec-do-while
     (lambda (env output ast cont)
-       (exec-expr env output (cadr ast) cont)
-       (if (exec-expr env output (caddr ast) cont)
-              (exec-while env output ast cont))
+       (cond ((#t)
+          (exec-expr env output (cadr ast) cont)
+          (if (exec-expr env output (caddr ast) cont)
+                 (exec-while env output ast cont))
+       ))
+       ; (exec-expr env output (cadr ast) cont)
+       ; (if (exec-expr env output (caddr ast) cont)
+       ;        (exec-while env output ast cont))
     ))
 
 (define exec-SEQ
@@ -598,6 +609,7 @@ base
              (lambda (env output val) val))) (cdr ast)))))
 
       ;; assign value to var and add it to env
+      ;; TODO - verifier si var existe, si oui, remplacer son contenu
       ((and (pair? ast) (equal? (car ast) 'ASSIGN))
         (cons (cons (cadr ast)
            (exec-expr env output (caddr ast) (lambda (env output val) val)))
