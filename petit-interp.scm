@@ -2,8 +2,8 @@
 
 ;;; Fichier : petit-interp.scm
 
-;;; Ce programme est une version incomplete du TP2.  Vous devez uniquement
-;;; changer et ajouter du code dans la premiere section.
+;;; Auteurs: Charlie Gauthier & Normand Desmarais
+
 
 ;;;----------------------------------------------------------------------------
 
@@ -14,6 +14,31 @@
 ;;; *fonctionnel* de Scheme dans votre codage (donc n'utilisez pas
 ;;; set!, set-car!, vector-set!, list-set!, begin, print, display,
 ;;; etc).
+
+;; Liste des opérateurs et tests
+(define opers
+    (list (cons 'ADD (lambda (x y) (+ x y)))
+          (cons 'SUB (lambda (x y) (- x y)))
+          (cons 'MUL (lambda (x y) (* x y)))
+          (cons 'DIV (lambda (x y) (safe-division x y quotient)))
+          (cons 'MOD (lambda (x y) (safe-division x y remainder)))
+          (cons 'LT (lambda (x y) (< x y)))
+          (cons 'LE (lambda (x y) (<= x y)))
+          (cons 'GT (lambda (x y) (> x y)))
+          (cons 'GE (lambda (x y) (>= x y)))
+          (cons 'EQ (lambda (x y) (= x y)))
+          (cons 'NE (lambda (x y) (not (= x y))))
+    ))
+
+;; La fonction safe-division execute la fonction fn passée en paramètre
+;; sur les valeurs x et y unitquement si y != 0. Autrement elle affiche
+;; un messagge d'erreur indiquant une division par zero.
+(define safe-division
+    (lambda (x y fn)
+       (if (= y 0)
+          (div-zero-error)
+          (fn x y))
+    ))
 
 ;; La fonction parse-and-execute recoit en parametre une liste des
 ;; caracteres qui constituent le programme a interpreter.  La
@@ -57,29 +82,36 @@
                    ((char=? c #\{) (cont ($ inp) 'LBRA))
                    ((char=? c #\}) (cont ($ inp) 'RBRA))
 
-                   ((char=? c #\+) (cont ($ inp) 'PLUS))
-                   ((char=? c #\-) (cont ($ inp) 'MINUS))
-                   ((char=? c #\*) (cont ($ inp) 'MULT))
-                   ((char=? c #\/) (cont ($ inp) 'DIVI))
-                   ((char=? c #\%) (cont ($ inp) 'MODU))
+                   ;; Les symboles arithmetiques sont les memes pour les
+                   ;; symboles qui seront traites dans l'interpreteur: ceci
+                   ;; rend la creation de l'ASA bien plus simple. En effet, on a
+                   ;; qu'a utiliser le sym comme symbole pour l'ASA.
+                   ((char=? c #\+) (cont ($ inp) 'ADD))
+                   ((char=? c #\-) (cont ($ inp) 'SUB))
+                   ((char=? c #\*) (cont ($ inp) 'MUL))
+                   ((char=? c #\/) (cont ($ inp) 'DIV))
+                   ((char=? c #\%) (cont ($ inp) 'MOD))
 
-                   ((char=? c #\=) ((combine ($ inp) 'ASSI cont)))
-                   ((char=? c #\>) ((combine ($ inp) 'GT cont)))
-                   ((char=? c #\<) ((combine ($ inp) 'LT cont)))
-                   ((char=? c #\!) ((if (char=? (@ ($ inp)) #\=) (cont ($ ($ inp)) 'NEQ) syntax-error)))
+                   ((char=? c #\=) (combine 'ASSI ($ inp) cont))
+                   ((char=? c #\>) (combine 'GT ($ inp) cont))
+                   ((char=? c #\<) (combine 'LT ($ inp) cont))
+                   ((char=? c #\!)
+                       (if (char=? (@ ($ inp)) #\=)
+                           (cont ($ ($ inp)) 'NE)
+                           (syntax-error)))
 
                    (else
                     (syntax-error))))))))
 
 (define combine
     (lambda (sym inp cont)
-        (if (char=? (@ inp) #\=)(
+        (if (char=? (@ inp) #\=)
             (cond
-                ((equal? sym 'ASSI)((cont ($ inp) 'EQ)))
-                ((equal? sym 'GT)((cont ($ inp) 'GE)))
-                ((equal? sym 'LT)((cont ($ inp) 'LE)))
+                ((equal? sym 'ASSI) (cont ($ inp) 'EQ))
+                ((equal? sym 'GT) (cont ($ inp) 'GE))
+                ((equal? sym 'LT) (cont ($ inp) 'LE))
             )
-        ) (cont inp sym))
+        (cont inp sym))
     )
 )
 
@@ -105,6 +137,13 @@
 (define syntax-error
   (lambda ()
     "syntax error\n"))
+
+;; La fonction div-zero-error retourne le message d'erreur indiquant une
+;; erreur de division par 0.
+
+(define div-zero-error
+  (lambda ()
+    "division by zero error\n"))
 
 ;; La fonction blanc? teste si son unique parametre est un caractere
 ;; blanc.
@@ -236,14 +275,12 @@
                     (<print_stat> inp2 cont))
                     ((IF-SYM)
                     (<if_stat> inp2 cont))
-                    ((ELSE-SYM)
-                    (<else_stat> inp2 cont))
                     ((WHILE-SYM)
                     (<while_stat> inp2 cont))
                     ((DO-SYM)
                     (<do_stat> inp2 cont))
                     ((LBRA)
-                    (<lbra_stat> inp2 cont))
+                    (<seq> inp2 cont '()))
                   (else
                    (<expr_stat> inp cont)))))))
 
@@ -257,15 +294,75 @@
                               (cont inp
                                     (list 'PRINT expr))))))))
 
-(define <lbra_stat>
-  (lambda (inp cont)
-    (<stat> inp ;; analyser un stat qui est entre les brackets
-                  (lambda (inp expr)
-                    (expect 'RBRA ;; verifier qu'il y a "}" apres
-                            inp
-                            (lambda (inp)
-                              (cont inp
-                                    (list 'SEQ expr))))))))
+;; L'ASA d'un if est de forme (IF (CONDITION) (STAT si vrai))
+;; L'ASA d'un if-else est de forme (IF-ELSE (CONDITION) (STAT si vrai) (STAT si faux))
+(define <if_stat>
+    (lambda (inp cont)
+        (<paren_expr> inp
+            (lambda (inp2 parenexpr)
+                (<stat> inp2
+                    (lambda (inp3 statexpr)
+                        (next-sym inp3 ;; verifier le premier symbole du <term>
+                          (lambda (inp4 sym)
+                          (if (equal? sym 'ELSE-SYM)
+                            (<stat> inp4
+                                (lambda (inp5 statexpr2)
+                                    (cont inp5 (append (append (append (list 'IF-ELSE) (list parenexpr)) (list statexpr)) (list statexpr2)))))
+                            (cont inp3 (append (append (list 'IF) (list parenexpr)) (list statexpr)))
+)))))))))
+
+;; Our own foldr (shorter than typing folder-right)
+(define foldr
+   (lambda (f base lst)
+      (if (null? lst)
+         base
+         (f (car lst) (foldr f base (cdr lst))))))
+
+;; Encapsule la list2 puis l'ajoute a la list1
+(define deep_append
+    (lambda (list1 list2)
+    (append list1 (list list2))))
+
+;; L'ASA d'une SEQ est de forme (SEQ (STAT) (STAT) ... (STAT))
+(define <seq>
+  (lambda (inp cont statlist)
+      (next-sym inp
+        (lambda (inp2 sym)
+        (if (equal? sym 'RBRA)
+            (expect 'RBRA
+                inp
+                (lambda (inp)
+                (cont inp
+                    ;; prends la liste de forme ((SEQ (STAT)) (SEQ (STAT)) ...) et la rend en forme (SEQ (STAT) (SEQ (STAT) ...
+                    (foldr deep_append (list 'EMPTY) statlist))))
+                (<stat> inp
+                    (lambda (inp stat)
+                            (<seq> inp cont (append statlist (list (list 'SEQ stat))))))
+)))))
+
+;; L'ASA d'un while est de forme: (WHILE (CONDITION) (STAT))
+(define <while_stat>
+    (lambda (inp cont)
+    (<paren_expr> inp
+        (lambda (inp2 parenexpr)
+        (<stat> inp2
+            (lambda (inp3 statexpr)
+            (cont inp3 (append (append (list 'WHILE) (list parenexpr)) (list statexpr)))))))))
+
+;; L'ASA d'un do while est de forme: (DO (STAT) (CONDITION))
+(define <do_stat>
+    (lambda (inp cont)
+    (<stat> inp
+        (lambda (inp2 statexpr)
+        (expect 'WHILE-SYM
+            inp2
+            (lambda (inp3)
+            (<paren_expr> inp3
+                (lambda (inp4 parenexpr)
+                (expect 'SEMI
+                    inp4
+                    (lambda (inp5)
+                    (cont inp5 (append (append (list 'DO) (list statexpr)) (list parenexpr)))))))))))))
 
 (define <paren_expr>
   (lambda (inp cont)
@@ -297,7 +394,7 @@
                 (next-sym inp2 ;; verifier 2e symbole du <expr>
                           (lambda (inp3 sym2)
                             (if (and (string? sym1) ;; combinaison "id =" ?
-                                     (equal? sym2 'EQ))
+                                     (equal? sym2 'ASSI))
                                 (<expr> inp3
                                         (lambda (inp expr)
                                           (cont inp
@@ -307,16 +404,80 @@
                                 (<test> inp cont))))))))
 
 (define <test>
-  (lambda (inp cont)
-    (<sum> inp cont)))
+    (lambda (inp cont)
+    (<sum> inp
+        '()
+        (lambda (inp2 list1)
+        (next-sym inp2 ;; verifier le premier symbole du <term>
+          (lambda (inp3 sym)
+          (if (or (equal? sym 'EQ)
+                  (equal? sym 'LT)
+                  (equal? sym 'GT)
+                  (equal? sym 'LE)
+                  (equal? sym 'GE)
+                  (equal? sym 'NE))
+              (<sum> inp3
+                  '()
+                  (lambda (inp4 list2)
+                    (cont inp4
+                        (append (append (list sym) (list list1)) (list list2))
+                    )))
+              (cont inp2 list1)
+                  )))))))
+
+;; TODO Faire fonction generale pour sum et mult? car meme logique...
 
 (define <sum>
-  (lambda (inp cont)
-    (<mult> inp cont)))
+  (lambda (inp sumlist cont)
+    (<mult> inp
+        '()
+        (lambda (inp2 term1)
+        (next-sym inp2
+            (lambda (inp3 sym)
+            (if (or (equal? sym 'ADD) (equal? sym 'SUB))
+                (<sum> inp3
+                    (if (null? sumlist)
+                        (list (append (list sym) (append sumlist (list term1))))        ;; Premiere recursion
+                        (if (< (length sumlist) 2)
+                            (append (list sym) (list (append (car sumlist) (list term1))))
+                            (append (list sym) (list (append sumlist (list term1))))
+                        )
+                         ;; Toutes les autres
+                    )
+                    cont)
+                (cont inp2 (if (null? sumlist)
+                    (append sumlist term1)                  ;; Si un term
+                    (if (equal? (length sumlist) 1)
+                        (append (car sumlist) (list term1)) ;; Si (SYM (TERM))
+                        (append sumlist (list term1)))      ;; Sinon
+                ))
+            )
+))))))
 
 (define <mult>
-  (lambda (inp cont)
-    (<term> inp cont)))
+  (lambda (inp multlist cont)
+    (<term> inp
+        (lambda (inp2 term1)
+        (next-sym inp2
+            (lambda (inp3 sym)
+            (if (or (equal? sym 'MUL) (equal? sym 'MOD) (equal? sym 'DIV))
+                (<mult> inp3
+                    (if (null? multlist)
+                        (list (append (list sym) (append multlist (list term1))))       ;; Premiere recursion
+                        (if (< (length multlist) 2)
+                            (append (list sym) (list (append (car multlist) (list term1))))
+                            (append (list sym) (list (append multlist (list term1))))
+                        )
+                    )
+                    cont)
+                (cont inp2 (if (null? multlist)
+                    (append multlist term1)                 ;; Si un term
+                    (if (equal? (length multlist) 1)
+                        (append (car multlist) (list term1)) ;; Si (SYM (TERM))
+                        (append multlist (list term1)))      ;; Sinon
+                ))
+            )
+))))))
 
 (define <term>
   (lambda (inp cont)
@@ -336,11 +497,12 @@
 
 (define execute
   (lambda (ast)     ;; enlever si on veut voir l'ASA TODO
+      (begin(pp ast)   ;; TODO TEMP
     (exec-stat '() ;; etat des variables globales
                ""  ;; sortie jusqu'a date
                ast ;; ASA du programme
                (lambda (env output)
-                 output)))) ;; retourner l'output pour qu'il soit affiche
+                 output))))) ;; retourner l'output pour qu'il soit affiche
 
 ;; La fonction exec-stat fait l'interpretation d'un enonce du
 ;; programme.  Elle prend quatre parametres : une liste d'association
@@ -370,18 +532,115 @@
         (exec-expr env ;; evaluer l'expression
                   output
                   (cadr ast)
-                  (lambda (env output val)
-                    (cont env output)))) ;; continuer en ignorant le resultat
+                  (lambda (env1 output val)
+                    (cont env1 output)))) ;; continuer en ignorant le resultat
 
         ((SEQ)
-        (exec-stat env ;; evaluer l'expression
+        (exec-seq env ;; evaluer l'expression
                   output
-                  (cadr ast)
-                  (lambda (env output val)
+                  (cdr ast)
+                  (lambda (env output)
                     (cont env output)))) ;; continuer en ignorant le resultat
+
+        ((IF)
+        (if (exec-expr env output (cadr ast) cont)
+                  (exec-stat env output (caddr ast) cont)))
+        ; (exec-if env
+        ;     output
+        ;     ast
+        ;     (lambda (env output)
+        ;        (cont env output))))
+
+        ((IF-ELSE)
+        (if (exec-expr env output (cadr ast) cont)
+                  (exec-stat env output (caddr ast) cont)
+                  (exec-stat env output (cadddr ast) cont)))
+
+        ((WHILE)
+        (exec-while env output ast cont))
+
+        ((DO)
+        (exec-do-while env output ast cont))
+
+        ((EMPTY)
+        cont env output)
 
       (else
        "internal error (unknown statement AST)\n"))))
+
+(define exec-if
+    (lambda (env output ast cont)
+       (exec-expr env output (cadr ast)
+           (lambda (env1 output val)
+             (if val
+               (exec-stat env1 output (caddr ast) cont)
+               ; (cont env output))))
+               )))
+        ; (if (exec-expr env output (cadr ast) cont)
+        ;    (exec-stat env output (caddr ast) cont)
+        ;    (cont env output))
+    ))
+
+;; La fonction exec-while execute le contenu de son corps
+;; si et seulement si (et tant que) la condition est vrai
+(define exec-while
+    (lambda (env output ast cont)
+       (if (exec-expr env output (cadr ast) cont)
+          (exec-stat env output (caddr ast)
+              (lambda (env output)
+              (exec-while env output ast cont)))
+           (cont env output))
+    ))
+
+;; La fonction exec-do-while execute le contenu de son corps
+;; une fois et tant que la condition est vrai
+(define exec-do-while
+    (lambda (env output ast cont)
+          (exec-stat env output (cadr ast)
+              (lambda (env output)
+              (if (exec-expr env output (caddr ast) cont)
+                  (exec-do-while env output ast cont)
+                  (cont env output))))
+    ))
+
+;; La fonction exec-seq exécute dans l'ordre les énoncés de son corps
+(define exec-seq
+    (lambda (env output ast cont)
+        (if (equal? (car ast) 'EMPTY)
+            (cont env output)
+
+            (if (equal? (car ast) 'SEQ)
+                (exec-stat env output (cadr ast)
+                    (lambda (env output)
+                    (exec-seq env output (caddr ast) cont)))
+                (exec-stat env output (car ast)
+                    (lambda (env output)
+                    (exec-seq env output (cadr ast) cont)))
+            )
+
+
+)))
+
+;; Fonction utilitaire qui retourne la postion d'une variable dans
+;; l'environnement ou false si cette vairable n'existe pas
+(define index-of
+    (lambda (key pos env)
+    ( if (null? env)
+       #f
+       (if (equal? key (car (car env)))
+          pos
+          (index-of key (+ pos 1) (cdr env))))))
+
+;; Fonction utilitaire qui met à jour l'environnement avec une pair
+;; (key . val). Si la cle existe, update-env remplace l'ancienne paire par
+;; la nouvelle. Autrement la paire est ajoutée au début de l'environnement.
+(define update-env
+    (lambda (key val env)
+    (let ((index (index-of key 0 env)))
+       (if index
+           (list-set env index (cons key val))
+           (cons (cons key val) env)))))
+
 
 ;; La fonction exec-expr fait l'interpretation d'une expression du
 ;; programme.  Elle prend quatre parametres : une liste d'association
@@ -395,12 +654,33 @@
 
 (define exec-expr
   (lambda (env output ast cont)
-    (case (car ast)
+    (cond
 
-      ((INT)
+      ;; evaluer les opérations: +, -, *, /, %
+      ;; ainsi que les tests: <, <=, >, >=, ==, !=
+      ((and (pair? ast) (assoc (car ast) opers))
+       (let ((fn (cdr (assoc (car ast) opers))))
+         (apply fn (map (lambda (x) (exec-expr env output x
+             ; (lambda (env output val) (cont env output val)))) (cdr ast)))))
+             (lambda (env output val) val))) (cdr ast)))))
+
+      ;; créer une paire (var . val) et l'ajouter à l'environnement
+      ;; si var existe déjà dans l'env, mettre à jour sa valeur
+      ((and (pair? ast) (equal? (car ast) 'ASSIGN))
+        (let ((var (cadr ast))
+              (val (exec-expr env output (caddr ast)
+                  (lambda (env output val1) val1))))
+              (cont (update-env var val env) output val)))
+
+      ;; retourner la valeur de la variable
+      ((and (pair? ast) (equal? (car ast) 'VAR) (assoc (cadr ast) env))
+         (cont env output (cdr (assoc (cadr ast) env))))
+
+      ;; retourner la valeur de la constante
+      ((and (pair? ast) (equal? (car ast) 'INT))
        (cont env
              output
-             (cadr ast))) ;; retourner la valeur de la constante
+             (cadr ast)))
 
       (else
        "internal error (unknown expression AST)\n"))))
@@ -413,4 +693,7 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
+(trace exec-expr exec-stat exec-do-while exec-if exec-seq update-env)
+; (trace <term> <mult> <sum> <test> <expr> <expr_stat> <paren_expr> <do_stat> <while_stat> <seq> <if_stat> <stat>)
+; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-seq <mult> <test>)
 ;;;----------------------------------------------------------------------------
