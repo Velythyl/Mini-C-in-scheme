@@ -11,25 +11,14 @@
     (list (cons 'ADD (lambda (x y) (+ x y)))
           (cons 'SUB (lambda (x y) (- x y)))
           (cons 'MUL (lambda (x y) (* x y)))
-          (cons 'DIV (lambda (x y) (safe-division x y quotient)))
-          (cons 'MOD (lambda (x y) (safe-division x y remainder)))
+          (cons 'DIV (lambda (x y) (quotient x y)))
+          (cons 'MOD (lambda (x y) (remainder x y)))
           (cons 'LT (lambda (x y) (< x y)))
           (cons 'LE (lambda (x y) (<= x y)))
           (cons 'GT (lambda (x y) (> x y)))
           (cons 'GE (lambda (x y) (>= x y)))
           (cons 'EQ (lambda (x y) (= x y)))
           (cons 'NE (lambda (x y) (not (= x y))))
-    ))
-
-;; La fonction safe-division execute la fonction fn passée en paramètre
-;; sur les valeurs x et y unitquement si y != 0. Autrement elle affiche
-;; un messagge d'erreur indiquant une division par zero.
-
-(define safe-division
-    (lambda (x y fn)
-       (if (= y 0)
-          (div-zero-error)
-          (fn x y))
     ))
 
 ;; La fonction parse-and-execute recoit en parametre une liste des
@@ -668,12 +657,15 @@
 
       ;; evaluer les opérations: +, -, *, /, %
       ;; ainsi que les tests: <, <=, >, >=, ==, !=
+
       ((and (pair? ast) (assoc (car ast) opers))
         (exec-expr env output (cadr ast) (lambda (env1 output val1)
             (exec-expr env1 output (caddr ast) (lambda (env2 output val2)
-                (let ((fn (cdr (assoc (car ast) opers))))
-                    (cont env2 output (fn val1 val2)))
-                )))))
+                (if (and (or (equal? (car ast) 'DIV) (equal? (car ast) 'MOD))
+                    (= val2 0))
+                        (string-append output (div-zero-error))
+                        (let ((fn (cdr (assoc (car ast) opers))))
+                            (cont env2 output (fn val1 val2)))))))))
 
       ;; créer une paire (var . val) et l'ajouter à l'environnement
       ;; si var existe déjà dans l'env, mettre à jour sa valeur
