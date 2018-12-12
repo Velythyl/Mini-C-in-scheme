@@ -4,16 +4,7 @@
 
 ;;; Auteurs: Charlie Gauthier & Normand Desmarais
 
-
 ;;;----------------------------------------------------------------------------
-
-;;; Vous devez modifier cette section.  La fonction parse-and-execute
-;;; doit etre definie, et vous pouvez modifier et ajouter des
-;;; definitions de fonction afin de bien decomposer le traitement a
-;;; faire en petites fonctions.  Il faut vous limiter au sous-ensemble
-;;; *fonctionnel* de Scheme dans votre codage (donc n'utilisez pas
-;;; set!, set-car!, vector-set!, list-set!, begin, print, display,
-;;; etc).
 
 ;; Liste des opérateurs et tests
 (define opers
@@ -33,6 +24,7 @@
 ;; La fonction safe-division execute la fonction fn passée en paramètre
 ;; sur les valeurs x et y unitquement si y != 0. Autrement elle affiche
 ;; un messagge d'erreur indiquant une division par zero.
+
 (define safe-division
     (lambda (x y fn)
        (if (= y 0)
@@ -103,6 +95,9 @@
                    (else
                     (syntax-error))))))))
 
+;; La fonction combine permet de vérifier la présence de symboles à deux
+;; caractères tel <=, >=, ==
+
 (define combine
     (lambda (sym inp cont)
         (if (char=? (@ inp) #\=)
@@ -143,7 +138,7 @@
 
 (define div-zero-error
   (lambda ()
-    "division by zero error\n"))
+    "divide by zero error\n"))
 
 ;; La fonction blanc? teste si son unique parametre est un caractere
 ;; blanc.
@@ -296,6 +291,7 @@
 
 ;; L'ASA d'un if est de forme (IF (CONDITION) (STAT si vrai))
 ;; L'ASA d'un if-else est de forme (IF-ELSE (CONDITION) (STAT si vrai) (STAT si faux))
+
 (define <if_stat>
     (lambda (inp cont)
         (<paren_expr> inp
@@ -307,11 +303,15 @@
                           (if (equal? sym 'ELSE-SYM)
                             (<stat> inp4
                                 (lambda (inp5 statexpr2)
-                                    (cont inp5 (append (append (append (list 'IF-ELSE) (list parenexpr)) (list statexpr)) (list statexpr2)))))
-                            (cont inp3 (append (append (list 'IF) (list parenexpr)) (list statexpr)))
+                                    (cont inp5 (append (append (append
+                                        (list 'IF-ELSE) (list parenexpr))
+                                            (list statexpr)) (list statexpr2)))))
+                            (cont inp3 (append (append (list 'IF)
+                                (list parenexpr)) (list statexpr)))
 )))))))))
 
-;; Our own foldr (shorter than typing folder-right)
+;; Notre propre implémentation de foldr (plus court à écrire que folder-right)
+
 (define foldr
    (lambda (f base lst)
       (if (null? lst)
@@ -319,11 +319,13 @@
          (f (car lst) (foldr f base (cdr lst))))))
 
 ;; Encapsule la list2 puis l'ajoute a la list1
+
 (define deep_append
     (lambda (list1 list2)
     (append list1 (list list2))))
 
 ;; L'ASA d'une SEQ est de forme (SEQ (STAT) (STAT) ... (STAT))
+
 (define <seq>
   (lambda (inp cont statlist)
       (next-sym inp
@@ -333,23 +335,28 @@
                 inp
                 (lambda (inp)
                 (cont inp
-                    ;; prends la liste de forme ((SEQ (STAT)) (SEQ (STAT)) ...) et la rend en forme (SEQ (STAT) (SEQ (STAT) ...
+                    ;; prends la liste de forme ((SEQ (STAT)) (SEQ (STAT)) ...)
+                    ;; et la rend en forme (SEQ (STAT) (SEQ (STAT) ...
                     (foldr deep_append (list 'EMPTY) statlist))))
                 (<stat> inp
                     (lambda (inp stat)
-                            (<seq> inp cont (append statlist (list (list 'SEQ stat))))))
+                            (<seq> inp cont (append statlist
+                                (list (list 'SEQ stat))))))
 )))))
 
 ;; L'ASA d'un while est de forme: (WHILE (CONDITION) (STAT))
+
 (define <while_stat>
     (lambda (inp cont)
     (<paren_expr> inp
         (lambda (inp2 parenexpr)
         (<stat> inp2
             (lambda (inp3 statexpr)
-            (cont inp3 (append (append (list 'WHILE) (list parenexpr)) (list statexpr)))))))))
+            (cont inp3 (append (append (list 'WHILE) (list parenexpr))
+                (list statexpr)))))))))
 
 ;; L'ASA d'un do while est de forme: (DO (STAT) (CONDITION))
+
 (define <do_stat>
     (lambda (inp cont)
     (<stat> inp
@@ -362,7 +369,8 @@
                 (expect 'SEMI
                     inp4
                     (lambda (inp5)
-                    (cont inp5 (append (append (list 'DO) (list statexpr)) (list parenexpr)))))))))))))
+                    (cont inp5 (append (append (list 'DO) (list statexpr))
+                        (list parenexpr)))))))))))))
 
 (define <paren_expr>
   (lambda (inp cont)
@@ -425,8 +433,6 @@
               (cont inp2 list1)
                   )))))))
 
-;; TODO Faire fonction generale pour sum et mult? car meme logique...
-
 (define <sum>
   (lambda (inp sumlist cont)
     (<mult> inp
@@ -437,12 +443,11 @@
             (if (or (equal? sym 'ADD) (equal? sym 'SUB))
                 (<sum> inp3
                     (if (null? sumlist)
-                        (list (append (list sym) (append sumlist (list term1))))        ;; Premiere recursion
+                        (list (append (list sym) (append sumlist (list term1)))) ;; Premiere recursion
                         (if (< (length sumlist) 2)
                             (append (list sym) (list (append (car sumlist) (list term1))))
                             (append (list sym) (list (append sumlist (list term1))))
-                        )
-                         ;; Toutes les autres
+                        ) ;; Toutes les autres
                     )
                     cont)
                 (cont inp2 (if (null? sumlist)
@@ -463,7 +468,7 @@
             (if (or (equal? sym 'MUL) (equal? sym 'MOD) (equal? sym 'DIV))
                 (<mult> inp3
                     (if (null? multlist)
-                        (list (append (list sym) (append multlist (list term1))))       ;; Premiere recursion
+                        (list (append (list sym) (append multlist (list term1)))) ;; Premiere recursion
                         (if (< (length multlist) 2)
                             (append (list sym) (list (append (car multlist) (list term1))))
                             (append (list sym) (list (append multlist (list term1))))
@@ -496,13 +501,23 @@
 ;; executes par le programme interprete.
 
 (define execute
-  (lambda (ast)     ;; enlever si on veut voir l'ASA TODO
-      (begin(pp ast)   ;; TODO TEMP
+  (lambda (ast)
     (exec-stat '() ;; etat des variables globales
                ""  ;; sortie jusqu'a date
                ast ;; ASA du programme
                (lambda (env output)
-                 output))))) ;; retourner l'output pour qu'il soit affiche
+                 output)))) ;; retourner l'output pour qu'il soit affiche
+
+; ;; Version debug de la fonction execute
+;
+; (define execute
+;   (lambda (ast)
+;       (begin(pp ast)
+;     (exec-stat '() ;; etat des variables globales
+;                ""  ;; sortie jusqu'a date
+;                ast ;; ASA du programme
+;                (lambda (env output)
+;                  output))))) ;; retourner l'output pour qu'il soit affiche
 
 ;; La fonction exec-stat fait l'interpretation d'un enonce du
 ;; programme.  Elle prend quatre parametres : une liste d'association
@@ -543,18 +558,18 @@
                     (cont env output)))) ;; continuer en ignorant le resultat
 
         ((IF)
-        (exec-expr env output (cadr ast)
+        (exec-expr env output (cadr ast) ;; evaluer l'expression
             (lambda (env output val)
             (if val
-                (exec-stat env output (caddr ast) cont))
+                (exec-stat env output (caddr ast) cont)) ;; executer stat si val != #f
             )))
 
         ((IF-ELSE)
-        (exec-expr env output (cadr ast)
+        (exec-expr env output (cadr ast) ;; evaluer l'expression
             (lambda (env output val)
                 (if val
-                    (exec-stat env output (caddr ast) cont)
-                    (exec-stat env output (cadddr ast) cont)
+                    (exec-stat env output (caddr ast) cont)  ;; executer stat1 si val != #f
+                    (exec-stat env output (cadddr ast) cont) ;; executer stat2 si val == #f
             ))))
 
         ((WHILE)
@@ -571,29 +586,32 @@
 
 ;; La fonction exec-while execute le contenu de son corps
 ;; si et seulement si (et tant que) la condition est vrai
+
 (define exec-while
     (lambda (env output ast cont)
-    (exec-expr env output (cadr ast) (lambda (env oupt val)
+    (exec-expr env output (cadr ast) (lambda (env oupt val) ;; evaluer l'expression
     (if val
-       (exec-stat env output (caddr ast)
+       (exec-stat env output (caddr ast) ;; executer le stat si val != #f
            (lambda (env output)
-           (exec-while env output ast cont)))
+           (exec-while env output ast cont))) ;; avec continuation sur exec-while
         (cont env output))))
     ))
 
 ;; La fonction exec-do-while execute le contenu de son corps
 ;; une fois et tant que la condition est vrai
+
 (define exec-do-while
     (lambda (env output ast cont)
-          (exec-stat env output (cadr ast)
+          (exec-stat env output (cadr ast) ;; executer le stat
               (lambda (env output)
-              (exec-expr env output (caddr ast) (lambda (env output val)
-              (if val (exec-do-while env output ast cont)
+              (exec-expr env output (caddr ast) (lambda (env output val) ;; evaluer l'expression
+              (if val (exec-do-while env output ast cont) ;; boucler si val != #f
               (cont env output))))))
     ))
 
 
 ;; La fonction exec-seq exécute dans l'ordre les énoncés de son corps
+
 (define exec-seq
     (lambda (env output ast cont)
         (if (equal? (car ast) 'EMPTY)
@@ -612,7 +630,8 @@
 )))
 
 ;; Fonction utilitaire qui retourne la postion d'une variable dans
-;; l'environnement ou false si cette vairable n'existe pas
+;; l'environnement ou false si cette vairable n'existe pas.
+
 (define index-of
     (lambda (key pos env)
     ( if (null? env)
@@ -624,6 +643,7 @@
 ;; Fonction utilitaire qui met à jour l'environnement avec une pair
 ;; (key . val). Si la cle existe, update-env remplace l'ancienne paire par
 ;; la nouvelle. Autrement la paire est ajoutée au début de l'environnement.
+
 (define update-env
     (lambda (key val env)
     (let ((index (index-of key 0 env)))
@@ -653,7 +673,6 @@
             (exec-expr env1 output (caddr ast) (lambda (env2 output val2)
                 (let ((fn (cdr (assoc (car ast) opers))))
                     (cont env2 output (fn val1 val2)))
-
                 )))))
 
       ;; créer une paire (var . val) et l'ajouter à l'environnement
@@ -687,5 +706,4 @@
 
 ; (trace exec-expr exec-stat exec-do-while exec-seq update-env)
 ; (trace <term> <mult> <sum> <test> <expr> <expr_stat> <paren_expr> <do_stat> <while_stat> <seq> <if_stat> <stat>)
-; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-seq <mult> <test>)
 ;;;----------------------------------------------------------------------------
