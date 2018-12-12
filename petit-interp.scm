@@ -543,9 +543,6 @@
                     (cont env output)))) ;; continuer en ignorant le resultat
 
         ((IF)
-        ; (if (exec-expr env output (cadr ast) cont)
-        ;           (exec-stat env output (caddr ast) cont)))
-        ((IF)
         (exec-expr env output (cadr ast)
             (lambda (env output val)
             (if val
