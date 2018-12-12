@@ -545,16 +545,20 @@
         ((IF)
         ; (if (exec-expr env output (cadr ast) cont)
         ;           (exec-stat env output (caddr ast) cont)))
-        (exec-if env
-            output
-            ast
-            (lambda (env output)
-               (cont env output))))
+        ((IF)
+        (exec-expr env output (cadr ast)
+            (lambda (env output val)
+            (if val
+                (exec-stat env output (caddr ast) cont))
+            )))
 
         ((IF-ELSE)
-        (if (exec-expr env output (cadr ast) cont)
-                  (exec-stat env output (caddr ast) cont)
-                  (exec-stat env output (cadddr ast) cont)))
+        (exec-expr env output (cadr ast)
+            (lambda (env output val)
+                (if val
+                    (exec-stat env output (caddr ast) cont)
+                    (exec-stat env output (cadddr ast) cont)
+            ))))
 
         ((WHILE)
         (exec-while env output ast cont))
@@ -566,20 +570,7 @@
         cont env output)
 
       (else
-       "internal error (unknown statement AST)\n"))))
-
-(define exec-if
-    (lambda (env output ast cont)
-       (exec-expr env output (cadr ast)
-           (lambda (env1 output val)
-             (if val
-               (exec-stat env1 output (caddr ast) cont)
-               ; (cont env output))))
-               )))
-        ; (if (exec-expr env output (cadr ast) cont)
-        ;    (exec-stat env output (caddr ast) cont)
-        ;    (cont env output))
-    ))
+       "internal error (unknown statement AST)\n")))))
 
 ;; La fonction exec-while execute le contenu de son corps
 ;; si et seulement si (et tant que) la condition est vrai
