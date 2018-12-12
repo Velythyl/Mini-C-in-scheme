@@ -15,7 +15,7 @@
 ;;; set!, set-car!, vector-set!, list-set!, begin, print, display,
 ;;; etc).
 
-;; Liste des opérateurs
+;; Liste des opérateurs et tests
 (define opers
     (list (cons 'ADD (lambda (x y) (+ x y)))
           (cons 'SUB (lambda (x y) (- x y)))
@@ -311,12 +311,12 @@
                             (cont inp3 (append (append (list 'IF) (list parenexpr)) (list statexpr)))
 )))))))))
 
+;; Our own foldr (shorter than typing folder-right)
 (define foldr
-(lambda (f base lst)
-(if (null? lst)
-base
-(f (car lst)
-(foldr f base (cdr lst))))))
+   (lambda (f base lst)
+      (if (null? lst)
+         base
+         (f (car lst) (foldr f base (cdr lst))))))
 
 ;; Encapsule la list2 puis l'ajoute a la list1
 (define deep_append
@@ -532,20 +532,24 @@ base
         (exec-expr env ;; evaluer l'expression
                   output
                   (cadr ast)
-                  (lambda (env output val)
-                    (cont env output)))) ;; continuer en ignorant le resultat
+                  (lambda (env1 output val)
+                    (cont env1 output)))) ;; continuer en ignorant le resultat
 
         ((SEQ)
-        (exec-SEQ env ;; evaluer l'expression
+        (exec-seq env ;; evaluer l'expression
                   output
                   (cdr ast)
                   (lambda (env output)
                     (cont env output)))) ;; continuer en ignorant le resultat
 
         ((IF)
-        (if (exec-expr env output (cadr ast) cont)
-                  (exec-stat env output (caddr ast) cont)
-                  ))
+        ; (if (exec-expr env output (cadr ast) cont)
+        ;           (exec-stat env output (caddr ast) cont)))
+        (exec-if env
+            output
+            ast
+            (lambda (env output)
+               (cont env output))))
 
         ((IF-ELSE)
         (if (exec-expr env output (cadr ast) cont)
@@ -564,15 +568,29 @@ base
       (else
        "internal error (unknown statement AST)\n"))))
 
+(define exec-if
+    (lambda (env output ast cont)
+       (exec-expr env output (cadr ast)
+           (lambda (env1 output val)
+             (if val
+               (exec-stat env1 output (caddr ast) cont)
+               ; (cont env output))))
+               )))
+        ; (if (exec-expr env output (cadr ast) cont)
+        ;    (exec-stat env output (caddr ast) cont)
+        ;    (cont env output))
+    ))
+
 ;; La fonction exec-while execute le contenu de son corps
 ;; si et seulement si (et tant que) la condition est vrai
 (define exec-while
     (lambda (env output ast cont)
-       (if (exec-expr env output (cadr ast) cont)
-          (exec-stat env output (caddr ast)
-              (lambda (env output)
-              (exec-while env output ast cont)))
-           (cont env output))
+    (exec-expr env output (cadr ast) (lambda (env oupt val)
+    (if val
+       (exec-stat env output (caddr ast)
+           (lambda (env output)
+           (exec-while env output ast cont)))
+        (cont env output))))
     ))
 
 ;; La fonction exec-do-while execute le contenu de son corps
@@ -581,13 +599,35 @@ base
     (lambda (env output ast cont)
           (exec-stat env output (cadr ast)
               (lambda (env output)
-              (if (exec-expr env output (caddr ast) cont)
-                  (exec-do-while env output ast cont)
-                  (cont env output))))
+              (exec-expr env output (caddr ast) (lambda (env output val)
+              (if val (exec-do-while env output ast cont)
+              (cont env output))))))
     ))
 
-;; La fonction exec-SEQ exécute dans l'ordre les énoncés de son corps
-(define exec-SEQ
+; ;; La fonction exec-while execute le contenu de son corps
+; ;; si et seulement si (et tant que) la condition est vrai
+; (define exec-while
+;     (lambda (env output ast cont)
+;        (if (exec-expr env output (cadr ast) cont)
+;           (exec-stat env output (caddr ast)
+;               (lambda (env output)
+;               (exec-while env output ast cont)))
+;            (cont env output))
+;     ))
+;
+; ;; La fonction exec-do-while execute le contenu de son corps
+; ;; une fois et tant que la condition est vrai
+; (define exec-do-while
+;     (lambda (env output ast cont)
+;           (exec-stat env output (cadr ast)
+;               (lambda (env output)
+;               (if (exec-expr env output (caddr ast) cont)
+;                   (exec-do-while env output ast cont)
+;                   (cont env output))))
+;     ))
+
+;; La fonction exec-seq exécute dans l'ordre les énoncés de son corps
+(define exec-seq
     (lambda (env output ast cont)
         (if (equal? (car ast) 'EMPTY)
             (cont env output)
@@ -595,10 +635,10 @@ base
             (if (equal? (car ast) 'SEQ)
                 (exec-stat env output (cadr ast)
                     (lambda (env output)
-                    (exec-SEQ env output (caddr ast) cont)))
+                    (exec-seq env output (caddr ast) cont)))
                 (exec-stat env output (car ast)
                     (lambda (env output)
-                    (exec-SEQ env output (cadr ast) cont)))
+                    (exec-seq env output (cadr ast) cont)))
             )
 
 
@@ -639,35 +679,38 @@ base
   (lambda (env output ast cont)
     (cond
 
-      ;; eval +,-,*,/,% and all tests (<, <=, >, >=, ==, !=)
+      ;; evaluer les opérations: +, -, *, /, %
+      ;; ainsi que les tests: <, <=, >, >=, ==, !=
       ((and (pair? ast) (assoc (car ast) opers))
-       (let ((fn (cdr (assoc (car ast) opers))))
-         (apply fn (map (lambda (x) (exec-expr env output x
-             (lambda (env output val) val))) (cdr ast)))))
+         (let (
+             (val1 (exec-expr env output (cadr ast) (lambda (env1 output val) val)))
+             (val2 (exec-expr env output (caddr ast) (lambda (env1 output val) val)))
+             (fn (cdr (assoc (car ast) opers))))
+                (cont env1 output (fn val1 val2))
+             )
+       ; (let ((fn (cdr (assoc (car ast) opers))))
+       ;   (apply fn (map (lambda (x) (exec-expr env output x
+       ;       ; (lambda (env output val) (cont env output val)))) (cdr ast)))))
+       ;       (lambda (env output val) val))) (cdr ast))))
+       )
 
-      ;; assign value to var and add it to env
-      ;; (car   ast) : ASSIGN
-      ;; (cadr  ast) : symbole, e.g. "i"
-      ;; (caddr ast) : expression
-      ;; TODO - verifier si var existe, si oui, remplacer son contenu
+      ;; créer une paire (var . val) et l'ajouter à l'environnement
+      ;; si var existe déjà dans l'env, mettre à jour sa valeur
       ((and (pair? ast) (equal? (car ast) 'ASSIGN))
-        ; (cons (cons (cadr ast)
-        ;    (exec-expr env output (caddr ast) (lambda (env output val) val)))
-        ;     env))
-        (let ((var (cadr ast)) (val (exec-expr env output (caddr ast) (lambda (env output val1) val1))))
-           ; (cont (cons (cons var val) env) output val)))
-           (cont (update-env var val env) output val)))
+        (let ((var (cadr ast))
+              (val (exec-expr env output (caddr ast)
+                  (lambda (env output val1) val1))))
+              (cont (update-env var val env) output val)))
 
-      ;; TODO - seems to work, but must double check when SEQ is fixed...
+      ;; retourner la valeur de la variable
       ((and (pair? ast) (equal? (car ast) 'VAR) (assoc (cadr ast) env))
-      ; ((and (symbol? ast) (assoc ast env)) ;; return value of a var
-         ; (cdr (assoc ast env))
          (cont env output (cdr (assoc (cadr ast) env))))
 
+      ;; retourner la valeur de la constante
       ((and (pair? ast) (equal? (car ast) 'INT))
        (cont env
              output
-             (cadr ast))) ;; retourner la valeur de la constante
+             (cadr ast)))
 
       (else
        "internal error (unknown expression AST)\n"))))
@@ -680,7 +723,7 @@ base
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace exec-expr exec-stat exec-do-while exec-SEQ update-env)
+(trace exec-expr exec-stat exec-do-while exec-if exec-seq update-env)
 ; (trace <term> <mult> <sum> <test> <expr> <expr_stat> <paren_expr> <do_stat> <while_stat> <seq> <if_stat> <stat>)
-; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
+; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-seq <mult> <test>)
 ;;;----------------------------------------------------------------------------
