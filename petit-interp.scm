@@ -592,27 +592,6 @@
               (cont env output))))))
     ))
 
-; ;; La fonction exec-while execute le contenu de son corps
-; ;; si et seulement si (et tant que) la condition est vrai
-; (define exec-while
-;     (lambda (env output ast cont)
-;        (if (exec-expr env output (cadr ast) cont)
-;           (exec-stat env output (caddr ast)
-;               (lambda (env output)
-;               (exec-while env output ast cont)))
-;            (cont env output))
-;     ))
-;
-; ;; La fonction exec-do-while execute le contenu de son corps
-; ;; une fois et tant que la condition est vrai
-; (define exec-do-while
-;     (lambda (env output ast cont)
-;           (exec-stat env output (cadr ast)
-;               (lambda (env output)
-;               (if (exec-expr env output (caddr ast) cont)
-;                   (exec-do-while env output ast cont)
-;                   (cont env output))))
-;     ))
 
 ;; La fonction exec-seq exécute dans l'ordre les énoncés de son corps
 (define exec-seq
@@ -670,17 +649,12 @@
       ;; evaluer les opérations: +, -, *, /, %
       ;; ainsi que les tests: <, <=, >, >=, ==, !=
       ((and (pair? ast) (assoc (car ast) opers))
-         (let (
-             (val1 (exec-expr env output (cadr ast) (lambda (env1 output val) val)))
-             (val2 (exec-expr env output (caddr ast) (lambda (env1 output val) val)))
-             (fn (cdr (assoc (car ast) opers))))
-                (cont env1 output (fn val1 val2))
-             )
-       ; (let ((fn (cdr (assoc (car ast) opers))))
-       ;   (apply fn (map (lambda (x) (exec-expr env output x
-       ;       ; (lambda (env output val) (cont env output val)))) (cdr ast)))))
-       ;       (lambda (env output val) val))) (cdr ast))))
-       )
+        (exec-expr env output (cadr ast) (lambda (env1 output val1)
+            (exec-expr env1 output (caddr ast) (lambda (env2 output val2)
+                (let ((fn (cdr (assoc (car ast) opers))))
+                    (cont env2 output (fn val1 val2)))
+
+                )))))
 
       ;; créer une paire (var . val) et l'ajouter à l'environnement
       ;; si var existe déjà dans l'env, mettre à jour sa valeur
@@ -711,7 +685,7 @@
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-(trace exec-expr exec-stat exec-do-while exec-if exec-seq update-env)
+; (trace exec-expr exec-stat exec-do-while exec-seq update-env)
 ; (trace <term> <mult> <sum> <test> <expr> <expr_stat> <paren_expr> <do_stat> <while_stat> <seq> <if_stat> <stat>)
 ; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-seq <mult> <test>)
 ;;;----------------------------------------------------------------------------
