@@ -604,6 +604,27 @@ base
 
 )))
 
+;; Fonction utilitaire qui retourne la postion d'une variable dans
+;; l'environnement ou false si cette vairable n'existe pas
+(define index-of
+    (lambda (key pos env)
+    ( if (null? env)
+       #f
+       (if (equal? key (car (car env)))
+          pos
+          (index-of key (+ pos 1) (cdr env))))))
+
+;; Fonction utilitaire qui met à jour l'environnement avec une pair
+;; (key . val). Si la cle existe, update-env remplace l'ancienne paire par
+;; la nouvelle. Autrement la paire est ajoutée au début de l'environnement.
+(define update-env
+    (lambda (key val env)
+    (let ((index (index-of key 0 env)))
+       (if index
+           (list-set env index (cons key val))
+           (cons (cons key val) env)))))
+
+
 ;; La fonction exec-expr fait l'interpretation d'une expression du
 ;; programme.  Elle prend quatre parametres : une liste d'association
 ;; qui contient la valeur de chaque variable du programme, une chaine
@@ -634,7 +655,8 @@ base
         ;    (exec-expr env output (caddr ast) (lambda (env output val) val)))
         ;     env))
         (let ((var (cadr ast)) (val (exec-expr env output (caddr ast) (lambda (env output val1) val1))))
-           (cont (cons (cons var val) env) output val)))
+           ; (cont (cons (cons var val) env) output val)))
+           (cont (update-env var val env) output val)))
 
       ;; TODO - seems to work, but must double check when SEQ is fixed...
       ((and (pair? ast) (equal? (car ast) 'VAR) (assoc (cadr ast) env))
@@ -658,6 +680,7 @@ base
   (lambda ()
     (print (parse-and-execute (read-all (current-input-port) read-char)))))
 
-; (trace exec-expr exec-stat exec-do-while exec-SEQ)
+(trace exec-expr exec-stat exec-do-while exec-SEQ update-env)
+; (trace <term> <mult> <sum> <test> <expr> <expr_stat> <paren_expr> <do_stat> <while_stat> <seq> <if_stat> <stat>)
 ; (trace main parse-and-execute parse <if_stat> execute expect <stat> combine exec-stat exec-expr exec-SEQ <mult> <test>)
 ;;;----------------------------------------------------------------------------
