@@ -327,10 +327,9 @@
                     ;; prends la liste de forme ((SEQ (STAT)) (SEQ (STAT)) ...)
                     ;; et la rend en forme (SEQ (STAT) (SEQ (STAT) ...
                     (foldr deep_append (list 'EMPTY) statlist))))
-                (<stat> inp
-                    (lambda (inp stat)
-                            (<seq> inp cont (append statlist
-                                (list (list 'SEQ stat))))))
+            (<stat> inp
+                (lambda (inp stat)
+                    (<seq> inp cont (append statlist (list (list 'SEQ stat))))))
 )))))
 
 ;; L'ASA d'un while est de forme: (WHILE (CONDITION) (STAT))
